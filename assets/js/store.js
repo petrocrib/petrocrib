@@ -128,6 +128,7 @@ async function renderProduct() {
       </div>` : ""}
 
       <div class="buy-row">
+        <button class="btn secondary" id="addBtn">Add to cart</button>
         <button class="btn" id="buyBtn">Buy now</button>
       </div>
       <div class="order-note" id="orderNote"></div>
@@ -154,6 +155,10 @@ async function renderProduct() {
     setActive("typePills", state.type);
     setActive("colorPills", state.color);
     setActive("sizePills", state.size);
+    if (STORE_CONFIG.WORKER_URL) {
+      noteEl.textContent = "Free delivery across India. Add multiple designs to one order!";
+      return;
+    }
     const link = STORE_CONFIG.razorpayLinks[currentPrice()];
     if (link) {
       noteEl.innerHTML = `On the payment page, mention: <b>${escapeHtml(summary())}</b> (we copy it to your clipboard when you tap Buy).`;
@@ -181,7 +186,22 @@ async function renderProduct() {
     t.classList.add("active");
   });
 
+  const addBtn = document.getElementById("addBtn");
+  const cartOn = !!(STORE_CONFIG.WORKER_URL && window.Cart);
+  if (!cartOn && addBtn) addBtn.style.display = "none";
+
+  function cartItem() {
+    return {
+      title: p.title,
+      variant: `${state.type} / ${cap(state.color)} / ${state.size}`,
+      price: currentPrice(),
+      img: p.images[0] || "",
+    };
+  }
+  if (cartOn && addBtn) addBtn.addEventListener("click", () => Cart.add(cartItem(), false));
+
   buyBtn.addEventListener("click", async () => {
+    if (cartOn) { Cart.add(cartItem(), true); return; }
     const price = currentPrice();
     const link = STORE_CONFIG.razorpayLinks[price];
     if (link) {

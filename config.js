@@ -25,7 +25,7 @@ const STORE_CONFIG = {
   // e.g. "https://petrocrib-pay.yourname.workers.dev"
   // When set, the site uses a real cart + Razorpay popup.
   // When empty, it falls back to the razorpayLinks below.
-  WORKER_URL: "",
+  WORKER_URL: "https://petrocrib-pay.petrocrib.workers.dev/",
 
   storeName: "PETROCRIB",
 

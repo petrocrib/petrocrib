@@ -344,6 +344,13 @@ body.yellow-page .site-footer, body.yellow-page .f-bottom { border-color: rgba(2
 }
 .contact-mail:hover { transform: translateY(-3px); box-shadow: 0 6px 0 rgba(252,208,25,.35); }
 
+/* touch feedback */
+.card:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 34px 6px rgba(255,170,0,.9), 0 10px 24px rgba(0,0,0,.3);
+}
+.btn:active, .pill:active { transform: scale(.94); }
+
 /* trust band */
 .trust {
   background: var(--bg);
@@ -409,17 +416,18 @@ body.yellow-page .site-footer, body.yellow-page .f-bottom { border-color: rgba(2
   .nav { gap: 16px; font-size: 15px; }
   .site-header .wrap { height: 72px; }
   .logo img { height: 40px; }
-  .hero { padding: 40px 0 300px; }
-  .hero-copy { max-width: 100%; }
-  .hero-art { width: 100%; top: auto; height: 300px; }
+  .hero { padding: 36px 0 0; }
+  .hero-copy { max-width: 100%; padding-bottom: 20px; }
+  .hero-art { position: relative; width: 100%; height: auto; }
   .hero-art img {
-    -webkit-mask-image: linear-gradient(0deg, #000 70%, transparent 100%);
-    mask-image: linear-gradient(0deg, #000 70%, transparent 100%);
-    object-position: top center;
+    height: auto; object-fit: contain; display: block;
+    -webkit-mask-image: none; mask-image: none;
   }
+  .hero-art .trend-badge { opacity: 1; font-size: 11px; }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   .f-bottom { justify-content: center; text-align: center; }
-  .cs-bee { display: none; }
+  .cs-bee.b2 { width: 64px; top: auto; bottom: 12%; right: 6%; }
+  .cs-bee.b3 { width: 44px; top: auto; bottom: 36%; right: 42%; }
   .trust-grid { grid-template-columns: 1fr; gap: 36px; }
   .logo img { height: 36px; }
   .nav { gap: 12px; font-size: 13px; }
@@ -435,8 +443,7 @@ body.yellow-page .site-footer, body.yellow-page .f-bottom { border-color: rgba(2
 /* extra-small phones */
 @media (max-width: 480px) {
   .wrap { padding: 0 14px; }
-  .hero { padding: 32px 0 260px; }
-  .hero-art { height: 260px; }
+  .hero { padding: 26px 0 0; }
   .size-guide table { font-size: 14px; }
   .size-guide td { padding: 8px 4px; }
   .pinfo .price { font-size: 26px; }

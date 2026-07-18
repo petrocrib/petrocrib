@@ -21,6 +21,12 @@
    ============================================================ */
 
 const STORE_CONFIG = {
+  // CART CHECKOUT (recommended): paste your Cloudflare Worker URL here,
+  // e.g. "https://petrocrib-pay.yourname.workers.dev"
+  // When set, the site uses a real cart + Razorpay popup.
+  // When empty, it falls back to the razorpayLinks below.
+  WORKER_URL: "",
+
   storeName: "PETROCRIB",
 
   // Paste your Razorpay Payment Page / Payment Link URLs here:

@@ -150,7 +150,7 @@
   );
 
   /* 3D logo tilts toward cursor */
-  const logo3d = document.querySelector(".logo3d");
+  const logo3d = document.querySelector(".logo-img");
   if (logo3d) {
     addEventListener("mousemove", (e) => {
       const r = logo3d.getBoundingClientRect();

@@ -50,6 +50,12 @@ img { max-width: 100%; display: block; }
   height: 89px;
 }
 .logo { perspective: 600px; display: inline-block; }
+.logo-img {
+  height: 52px; width: auto; display: block;
+  will-change: transform;
+  transition: transform .18s ease-out;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
+}
 .logo3d {
   display: inline-block;
   font-family: 'Bungee', cursive;
@@ -66,7 +72,7 @@ img { max-width: 100%; display: block; }
     10px 12px 16px rgba(0,0,0,.5);
 }
 @media (hover: none) {
-  .logo3d { animation: logoSway 5.5s ease-in-out infinite; }
+  .logo-img { animation: logoSway 5.5s ease-in-out infinite; }
 }
 @keyframes logoSway {
   0%, 100% { transform: perspective(600px) rotateY(-9deg) rotateX(2deg); }
@@ -319,6 +325,14 @@ img { max-width: 100%; display: block; }
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   font-size: 14px; color: rgba(255,255,255,.45);
 }
+/* 3D bees */
+.bee3d-canvas {
+  position: absolute; inset: 0; z-index: 3;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.hero-3d .cs-bee { display: none !important; }
+
 /* yellow products band */
 .band-yellow {
   background: var(--ink);
@@ -524,9 +538,11 @@ body.yellow-page .btn.secondary { background: transparent; color: #000; border-c
   .product-layout { grid-template-columns: 1fr; gap: 30px; padding-top: 28px; }
   .nav { gap: 16px; font-size: 15px; }
   .site-header .wrap { height: 72px; }
-  .hero { padding: 36px 0 0; }
-  .hero-copy { max-width: 100%; padding-bottom: 20px; }
+  .hero { padding: 0; }
+  .hero::before { display: none; }
   .hero-art { position: relative; width: 100%; height: auto; }
+  .hero .wrap { position: absolute; top: 0; left: 0; right: 0; z-index: 4; }
+  .hero-copy { max-width: 100%; padding: 14px 8px 0; }
   .hero-art img {
     height: auto; object-fit: contain; display: block;
     -webkit-mask-image: none; mask-image: none;
@@ -537,19 +553,20 @@ body.yellow-page .btn.secondary { background: transparent; color: #000; border-c
   .cs-bee.b2 { width: 64px; top: auto; bottom: 12%; right: 6%; }
   .cs-bee.b3 { width: 44px; top: auto; bottom: 36%; right: 42%; }
   .trust-grid { grid-template-columns: 1fr; gap: 36px; }
-  .logo3d { font-size: 17px; text-shadow: 1px 1px 0 #161616, 2px 2px 0 #161616, 3px 3px 0 #161616, 5px 6px 8px rgba(0,0,0,.5); }
+  .logo-img { height: 34px; }
   .hm { display: none; }
   .cart-count { display: none; }
   .nav { gap: 14px; font-size: 14px; }
   .nav { gap: 12px; font-size: 13px; }
   .site-header .wrap { height: 64px; }
-  .hero::before {
-    background: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,.03) 70%);
-  }
-  .hero { padding-top: 18px; }
   .hero-copy { text-align: center; }
-  .hero h1 { font-size: clamp(1.5rem, 6.5vw, 2rem); text-shadow: 0 2px 10px rgba(0,0,0,.6); }
-  .hero p { font-size: 15px; max-width: 92%; margin-left: auto; margin-right: auto; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+  .hero h1 { font-size: clamp(.85rem, 3.4vw, 1.05rem); text-shadow: 0 2px 8px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.9); }
+  .hero p { display: none; }
+  .hero .btn { font-size: 11px; padding: 8px 18px; margin-top: 2px; }
+  .pinfo h1, .pinfo .price { text-align: center; }
+  .f-col { text-align: center; }
+  .f-logo, .t-item svg { margin-left: auto; margin-right: auto; }
+  .socials { justify-content: center; }
   .section-title { margin: 30px 0 20px; text-align: center; }
   .grid { gap: 18px; padding-bottom: 48px; }
 }
@@ -557,7 +574,6 @@ body.yellow-page .btn.secondary { background: transparent; color: #000; border-c
 /* extra-small phones */
 @media (max-width: 480px) {
   .wrap { padding: 0 14px; }
-  .hero { padding: 26px 0 0; }
   .size-guide table { font-size: 14px; }
   .size-guide td { padding: 8px 4px; }
   .pinfo .price { font-size: 26px; }

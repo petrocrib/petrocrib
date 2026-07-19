@@ -34,6 +34,7 @@
 
   /* ================= MOBILE: scroll-driven parallax ================= */
   if (touch) {
+    /* bees drift gently while hero is on screen (clamped, never over text) */
     if (hero) {
       let tick = false;
       addEventListener(
@@ -43,19 +44,45 @@
           tick = true;
           requestAnimationFrame(() => {
             const y = window.scrollY;
+            const drift = Math.min(y * 0.08, 46);
             bees.forEach((b, i) => {
-              const d = i === 0 ? 1.5 : 1;
               const flip = b.classList.contains("b2") ? " scaleX(-1)" : "";
               b.style.transform =
-                `translate(${Math.sin(y / 55 + i * 2) * 12}px, ${-y * 0.14 * d}px) rotate(${Math.sin(y / 70) * 8}deg)` + flip;
+                `translate(${Math.sin(y / 60 + i * 2) * 10}px, ${-drift * (i === 0 ? 1 : 0.7)}px)` + flip;
             });
-            if (artImg) artImg.style.transform = `translateY(${y * 0.05}px)`;
             tick = false;
           });
         },
         { passive: true }
       );
     }
+
+    /* product spotlight: the card nearest screen center glows as you scroll */
+    let sTick = false;
+    addEventListener(
+      "scroll",
+      () => {
+        if (sTick) return;
+        sTick = true;
+        requestAnimationFrame(() => {
+          const cards = document.querySelectorAll(".card");
+          if (cards.length) {
+            const mid = innerHeight / 2;
+            let best = null, bestD = 1e9;
+            cards.forEach((c) => {
+              const r = c.getBoundingClientRect();
+              if (r.bottom < 0 || r.top > innerHeight) return;
+              const d = Math.abs(r.top + r.height / 2 - mid);
+              if (d < bestD) { bestD = d; best = c; }
+            });
+            cards.forEach((c) => c.classList.toggle("card-focus", c === best && bestD < innerHeight * 0.3));
+          }
+          sTick = false;
+        });
+      },
+      { passive: true }
+    );
+
     return; // pointer effects below are desktop-only
   }
 
@@ -121,6 +148,18 @@
     },
     true
   );
+
+  /* 3D logo tilts toward cursor */
+  const logo3d = document.querySelector(".logo3d");
+  if (logo3d) {
+    addEventListener("mousemove", (e) => {
+      const r = logo3d.getBoundingClientRect();
+      const dx = Math.max(-0.5, Math.min(0.5, (e.clientX - (r.left + r.width / 2)) / innerWidth));
+      const dy = Math.max(-0.5, Math.min(0.5, (e.clientY - (r.top + r.height / 2)) / innerHeight));
+      logo3d.style.transform =
+        `perspective(600px) rotateY(${dx * 36}deg) rotateX(${-dy * 26}deg)`;
+    });
+  }
 
   /* magnetic buttons */
   document.addEventListener("mousemove", (e) => {

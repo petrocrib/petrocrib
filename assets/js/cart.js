@@ -9,7 +9,7 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
   let cart = load("pc_cart", []);
-  let cust = load("pc_cust", { name: "", phone: "", email: "", address: "" });
+  let cust = load("pc_cust", { name: "", phone: "", email: "", address: "", pincode: "" });
 
   /* ---------- header cart button ---------- */
   const nav = document.querySelector(".nav");
@@ -37,7 +37,8 @@
       <input id="cdName" placeholder="Full name" autocomplete="name">
       <input id="cdPhone" placeholder="Phone (WhatsApp preferred)" autocomplete="tel">
       <input id="cdEmail" placeholder="Email" autocomplete="email">
-      <textarea id="cdAddr" rows="3" placeholder="Full address with pincode"></textarea>
+      <textarea id="cdAddr" rows="3" placeholder="Full address"></textarea>
+      <input id="cdPin" placeholder="Pincode" inputmode="numeric" maxlength="6">
     </div>
     <div class="cd-foot">
       <div class="cd-total">Total <b id="cdTotal">₹0</b></div>
@@ -49,8 +50,8 @@
   document.body.appendChild(wrap);
 
   const $ = (id) => document.getElementById(id);
-  ["cdName", "cdPhone", "cdEmail", "cdAddr"].forEach((id, i) => {
-    const k = ["name", "phone", "email", "address"][i];
+  ["cdName", "cdPhone", "cdEmail", "cdAddr", "cdPin"].forEach((id, i) => {
+    const k = ["name", "phone", "email", "address", "pincode"][i];
     $(id).value = cust[k] || "";
     $(id).addEventListener("input", () => { cust[k] = $(id).value; save("pc_cust", cust); });
   });
@@ -130,8 +131,11 @@
   /* ---------- checkout ---------- */
   $("cdPay").addEventListener("click", async () => {
     if (!cart.length) return toast("Cart is empty");
-    if (!cust.name.trim() || !cust.phone.trim() || cust.address.trim().length < 10)
-      return toast("Fill name, phone & full address first");
+    if (!cust.name.trim()) return toast("Name is required");
+    if (!/^[0-9+\s-]{10,}$/.test(cust.phone.trim())) return toast("Enter a valid phone number");
+    if (!/^\S+@\S+\.\S+$/.test(cust.email.trim())) return toast("Enter a valid email");
+    if (cust.address.trim().length < 10) return toast("Enter your full address");
+    if (!/^[0-9]{6}$/.test(cust.pincode.trim())) return toast("Enter a valid 6-digit pincode");
     const btn = $("cdPay");
     btn.disabled = true; btn.textContent = "Preparing…";
     try {
@@ -140,7 +144,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cart.map((i) => ({ title: i.title, variant: i.variant, price: i.price, qty: i.qty })),
-          customer: { name: cust.name, phone: cust.phone, address: cust.address },
+          customer: { name: cust.name, phone: cust.phone, address: cust.address + " — PIN: " + cust.pincode },
         }),
       });
       const data = await res.json();

@@ -1,4 +1,4 @@
-/* PETROCRIB CART — multi-item cart + Razorpay Checkout via Cloudflare Worker.
+/* PETROCRIB CART — multi-item cart + Razorpay Checkout.
    Active only when STORE_CONFIG.WORKER_URL is set. */
 
 (function () {
@@ -11,7 +11,6 @@
   let cart = load("pc_cart", []);
   let cust = load("pc_cust", { name: "", phone: "", email: "", address: "", pincode: "" });
 
-  /* ---------- header cart button ---------- */
   const nav = document.querySelector(".nav");
   if (nav) {
     const a = document.createElement("a");
@@ -22,7 +21,6 @@
     nav.appendChild(a);
   }
 
-  /* ---------- drawer ---------- */
   const wrap = document.createElement("div");
   wrap.innerHTML = `
   <div class="cart-overlay" id="cartOverlay"></div>
@@ -60,8 +58,8 @@
 
   function openDrawer() { render(); document.body.classList.add("cart-open"); }
   function closeDrawer() { document.body.classList.remove("cart-open"); }
-
   function total() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
+  function syncCart() { if (window.PCAnalytics) PCAnalytics.syncCart(cart); }
 
   function render() {
     const box = $("cdItems");
@@ -90,7 +88,7 @@
         if (b.dataset.a === "plus" && cart[i].qty < 10) cart[i].qty++;
         if (b.dataset.a === "minus") { cart[i].qty--; if (cart[i].qty < 1) cart.splice(i, 1); }
         if (b.dataset.a === "rm") cart.splice(i, 1);
-        save("pc_cart", cart); render();
+        save("pc_cart", cart); render(); syncCart();
       })
     );
     $("cdTotal").textContent = rs(total());
@@ -101,34 +99,26 @@
     const el = $("cartCount");
     if (el) el.textContent = cart.reduce((s, i) => s + i.qty, 0);
   }
-
   function toast(msg) {
-    const t = $("cartToast");
-    t.textContent = msg;
-    t.classList.add("show");
+    const t = $("cartToast"); t.textContent = msg; t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 2200);
   }
-
   function esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  /* ---------- public API ---------- */
   window.Cart = {
     add(item, open) {
       const key = item.title + item.variant;
       const found = cart.find((i) => i.title + i.variant === key);
       if (found) { if (found.qty < 10) found.qty++; }
       else cart.push({ ...item, qty: 1 });
-      save("pc_cart", cart);
-      updateCount();
-      if (open) openDrawer();
-      else toast("Added to cart ✓");
+      save("pc_cart", cart); updateCount(); syncCart();
+      if (window.PCAnalytics) PCAnalytics.track("add_to_cart", { productId: item.productId || null, productTitle: item.title, variant: item.variant, value: item.price });
+      if (open) openDrawer(); else toast("Added to cart ✓");
     },
   };
 
-  /* ---------- checkout ---------- */
   $("cdPay").addEventListener("click", async () => {
     if (!cart.length) return toast("Cart is empty");
     if (!cust.name.trim()) return toast("Name is required");
@@ -138,13 +128,15 @@
     if (!/^[0-9]{6}$/.test(cust.pincode.trim())) return toast("Enter a valid 6-digit pincode");
     const btn = $("cdPay");
     btn.disabled = true; btn.textContent = "Preparing…";
+    if (window.PCAnalytics) PCAnalytics.track("checkout_start", { value: total(), metadata: { itemCount: cart.reduce((s,i)=>s+i.qty,0) } });
     try {
       const res = await fetch(WURL + "/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sessionId: window.PCAnalytics ? PCAnalytics.sessionId() : null,
           items: cart.map((i) => ({ title: i.title, variant: i.variant, price: i.price, qty: i.qty })),
-          customer: { name: cust.name, phone: cust.phone, address: cust.address + " — PIN: " + cust.pincode },
+          customer: { name: cust.name, phone: cust.phone, email: cust.email, address: cust.address, pincode: cust.pincode },
         }),
       });
       const data = await res.json();
@@ -160,25 +152,23 @@
         prefill: { name: cust.name, contact: cust.phone, email: cust.email },
         theme: { color: "#fcd019" },
         handler: async (resp) => {
-          let ok = false;
+          let ok = false, verified = {};
           try {
-            const v = await fetch(WURL + "/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(resp),
-            });
-            ok = (await v.json()).valid;
+            const v = await fetch(WURL + "/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) });
+            verified = await v.json(); ok = !!verified.valid;
           } catch {}
-          cart = []; save("pc_cart", cart); render();
+          if (ok) { cart = []; save("pc_cart", cart); render(); syncCart(); }
+          if (window.PCAnalytics) PCAnalytics.track(ok ? "checkout_success" : "checkout_verification_pending", { value: data.amount/100, metadata: { reference: verified.reference || data.reference || "" } });
           $("cdItems").innerHTML = `<div class="cd-success">
             <div class="cd-check">✓</div>
-            <h3>Order received!</h3>
+            <h3>${ok ? "Order received!" : "Payment received"}</h3>
+            ${verified.reference || data.reference ? `<p>Order reference: <b>${esc(verified.reference || data.reference)}</b></p>` : ""}
             <p>Payment ID: <b>${esc(resp.razorpay_payment_id)}</b>${ok ? "" : " (verification pending)"}</p>
             <p>We'll confirm on WhatsApp/email before dispatch. Screenshot this for reference.</p>
           </div>`;
         },
       });
-      rz.on("payment.failed", () => toast("Payment failed — try again"));
+      rz.on("payment.failed", () => { toast("Payment failed — try again"); if(window.PCAnalytics)PCAnalytics.track("payment_failed",{value:total()}); });
       rz.open();
     } catch (e) {
       toast("Could not start payment. Try again.");
@@ -186,5 +176,5 @@
     btn.disabled = false; btn.textContent = "Pay with Razorpay";
   });
 
-  updateCount();
+  updateCount(); syncCart();
 })();

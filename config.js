@@ -21,10 +21,12 @@
    ============================================================ */
 
 const STORE_CONFIG = {
-  // CART CHECKOUT (recommended): paste your Cloudflare Worker URL here,
-  // e.g. "https://petrocrib-pay.yourname.workers.dev"
-  // When set, the site uses a real cart + Razorpay popup.
-  // When empty, it falls back to the razorpayLinks below.
+  // New admin/backend base URL. Keep blank until the Vercel backend is ready.
+  // Example: "https://petrocrib-admin.vercel.app"
+  BACKEND_URL: "",
+
+  // Existing checkout backend. This remains unchanged until the new backend
+  // is tested and ready to replace it.
   WORKER_URL: "https://petrocrib-pay.petrocrib.workers.dev/",
 
   storeName: "PETROCRIB",

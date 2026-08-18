@@ -8,9 +8,9 @@ const allowed = new Set([
 ]);
 
 export function corsHeaders(origin: string | null) {
-  const ok = origin && (allowed.has(origin) || origin.endsWith(".vercel.app"));
+  const ok = !!origin && (allowed.has(origin) || origin.endsWith(".vercel.app"));
   return {
-    "Access-Control-Allow-Origin": ok ? origin! : "https://petrocrib.in",
+    "Access-Control-Allow-Origin": ok && origin ? origin : "https://petrocrib.in",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Credentials": "true",
@@ -24,7 +24,8 @@ export function preflight(req: Request) {
 
 export function json(req: Request, data: unknown, init: ResponseInit = {}) {
   return NextResponse.json(data, {
-    ...init,
-    headers: { ...corsHeaders(req.headers.get("origin")), ...(init.headers || {}) }
+    status: init.status,
+    statusText: init.statusText,
+    headers: corsHeaders(req.headers.get("origin"))
   });
 }

@@ -1,0 +1,7 @@
+{
+  "name": "petrocrib-storefront",
+  "private": true,
+  "scripts": {
+    "build": "node build-static.mjs"
+  }
+}

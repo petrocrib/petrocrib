@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bayon&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=20260820-3">
-<link rel="stylesheet" href="assets/css/cart-page.css?v=20260820-3">
+<link rel="stylesheet" href="assets/css/style.css?v=20260820-4">
+<link rel="stylesheet" href="assets/css/cart-page.css?v=20260820-4">
 </head>
 <body>
 <header class="site-header">
@@ -28,56 +28,97 @@
   <div class="wrap">
     <div class="cart-page-heading">
       <div>
-        <div class="cart-page-kicker">Ready when you are</div>
+        <div class="cart-page-kicker">Almost yours</div>
         <h1>Your cart</h1>
       </div>
       <a class="cp-continue" href="index.html#shop">← Continue shopping</a>
     </div>
 
     <div id="cartPageInner" class="cp-grid">
-      <section class="cp-panel" aria-labelledby="cartItemsTitle">
+      <section class="cp-panel cp-items-panel" aria-labelledby="cartItemsTitle">
         <div class="cp-panel-head">
-          <h2 id="cartItemsTitle">Your items</h2>
+          <div>
+            <h2 id="cartItemsTitle">Your items</h2>
+            <p>Review size, colour and quantity before you pay.</p>
+          </div>
           <span id="cpItemCount">0 items</span>
         </div>
         <div id="cpItems" class="cp-items"></div>
       </section>
 
       <aside id="cpCheckout" class="cp-panel cp-checkout" aria-label="Checkout details">
-        <section class="cp-section">
-          <h2>Delivery details</h2>
+        <div class="cp-checkout-top">
+          <div class="cp-checkout-kicker">Secure checkout</div>
+          <h2>Complete your order</h2>
+          <div class="cp-progress" aria-label="Checkout progress">
+            <span class="on"><b>1</b> Details</span>
+            <i></i>
+            <span><b>2</b> Pay</span>
+          </div>
+        </div>
+
+        <section class="cp-section cp-delivery-section">
+          <div class="cp-section-title-row">
+            <span class="cp-step">1</span>
+            <div>
+              <h2>Delivery details</h2>
+              <p>We’ll use these details for this order and delivery updates.</p>
+            </div>
+          </div>
+
           <div class="cp-field-grid">
-            <div class="cp-field">
-              <label for="cpName">Full name</label>
-              <input id="cpName" autocomplete="name" placeholder="Your name">
+            <div class="cp-field" id="cpNameField">
+              <label for="cpName">Full name <span>*</span></label>
+              <input id="cpName" autocomplete="name" placeholder="Your full name" aria-describedby="cpNameError">
+              <div class="cp-field-error" id="cpNameError" aria-live="polite"></div>
             </div>
-            <div class="cp-field">
-              <label for="cpPhone">Phone</label>
-              <input id="cpPhone" autocomplete="tel" placeholder="WhatsApp preferred">
+            <div class="cp-field" id="cpPhoneField">
+              <label for="cpPhone">Phone <span>*</span></label>
+              <input id="cpPhone" autocomplete="tel" inputmode="tel" placeholder="WhatsApp preferred" aria-describedby="cpPhoneError">
+              <div class="cp-field-error" id="cpPhoneError" aria-live="polite"></div>
             </div>
-            <div class="cp-field full">
-              <label for="cpEmail">Email</label>
-              <input id="cpEmail" type="email" autocomplete="email" placeholder="you@example.com">
+            <div class="cp-field full" id="cpEmailField">
+              <label for="cpEmail">Email <span>*</span></label>
+              <input id="cpEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-describedby="cpEmailError">
+              <div class="cp-field-error" id="cpEmailError" aria-live="polite"></div>
             </div>
-            <div class="cp-field full">
-              <label for="cpAddr">Full address</label>
-              <textarea id="cpAddr" rows="4" autocomplete="street-address" placeholder="House / flat, street, area, city, state"></textarea>
+            <div class="cp-field full" id="cpAddrField">
+              <label for="cpAddr">Full address <span>*</span></label>
+              <textarea id="cpAddr" rows="4" autocomplete="street-address" placeholder="House / flat, street, area, city, state" aria-describedby="cpAddrError"></textarea>
+              <div class="cp-field-error" id="cpAddrError" aria-live="polite"></div>
             </div>
-            <div class="cp-field">
-              <label for="cpPin">Pincode</label>
-              <input id="cpPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit pincode">
+            <div class="cp-field" id="cpPinField">
+              <label for="cpPin">Pincode <span>*</span></label>
+              <input id="cpPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit pincode" aria-describedby="cpPinError">
+              <div class="cp-field-error" id="cpPinError" aria-live="polite"></div>
             </div>
           </div>
         </section>
 
-        <section class="cp-section">
-          <h2>Order summary</h2>
-          <div class="cp-summary-row"><span>Subtotal</span><strong id="cpSubtotal">₹0</strong></div>
-          <div class="cp-summary-row"><span>Delivery</span><strong class="cp-free">FREE</strong></div>
-          <div class="cp-summary-total"><span>Total</span><strong id="cpTotal">₹0</strong></div>
+        <section class="cp-section cp-review-section">
+          <div class="cp-section-title-row">
+            <span class="cp-step">2</span>
+            <div>
+              <h2>Review &amp; pay</h2>
+              <p>Final amount before opening Razorpay.</p>
+            </div>
+          </div>
+
+          <div class="cp-summary-card">
+            <div class="cp-summary-row"><span id="cpSummaryItems">Items</span><strong id="cpSubtotal">₹0</strong></div>
+            <div class="cp-summary-row"><span>Delivery across India</span><strong class="cp-free">FREE</strong></div>
+            <div class="cp-summary-total"><span>Total</span><strong id="cpTotal">₹0</strong></div>
+          </div>
+
           <button class="btn cp-pay" id="cpPay" type="button">Pay securely with Razorpay</button>
-          <div class="cp-secure-note">UPI · Cards · Netbanking</div>
-          <div class="cp-secure-strip"><span class="cp-lock">✓</span><span>Secure payment powered by Razorpay</span></div>
+          <div class="cp-payment-methods">UPI · Cards · Netbanking</div>
+          <p class="cp-payment-copy">Payment details are handled securely by Razorpay. Petrocrib does not store your card or UPI credentials.</p>
+
+          <div class="cp-trust-grid">
+            <div><span>✓</span><b>Secure checkout</b></div>
+            <div><span>✓</span><b>Free delivery</b></div>
+            <div><span>✓</span><b>7-day support</b></div>
+          </div>
         </section>
       </aside>
     </div>
@@ -97,7 +138,7 @@
 <script src="assets/js/analytics.js"></script>
 <script src="products.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="assets/js/cart.js?v=20260820-3"></script>
-<script src="assets/js/cart-images.js?v=20260820-3"></script>
+<script src="assets/js/cart.js?v=20260820-4"></script>
+<script src="assets/js/cart-images.js?v=20260820-4"></script>
 </body>
 </html>

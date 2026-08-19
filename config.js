@@ -24,9 +24,10 @@ const STORE_CONFIG = {
   // New admin/backend base URL. Analytics is enabled against the Vercel backend.
   BACKEND_URL: "https://petrocrib-admin.vercel.app",
 
-  // Existing checkout backend. This remains unchanged until the new backend
-  // is tested and ready to replace it.
-  WORKER_URL: "https://petrocrib-pay.petrocrib.workers.dev/",
+  // Payments now pass through the Vercel backend, which proxies the existing
+  // Cloudflare/Razorpay checkout. This avoids browser-origin/CORS issues after
+  // moving the storefront to www.petrocrib.in.
+  WORKER_URL: "https://petrocrib-admin.vercel.app/api/legacy",
 
   storeName: "PETROCRIB",
 

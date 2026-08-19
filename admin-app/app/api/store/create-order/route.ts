@@ -1,6 +1,6 @@
 import { db, normalizePhone, uid } from "@/lib/db";
 import { validateCart } from "@/lib/catalog";
-import { json, preflight } from "@/lib/http";
+import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +15,10 @@ function reference() {
 
 export async function POST(req: Request) {
   try {
+    if (!isStoreRequestAllowed(req)) return json(req, { error: "Forbidden" }, { status: 403 });
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) return json(req, { error: "JSON required" }, { status: 415 });
+
     const body = await req.json();
     const items = await validateCart(body.items);
     const customer = body.customer || {};
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
     });
     const rz = await rzRes.json();
     if (!rzRes.ok || !rz.id) {
-      console.error("razorpay create", rz);
+      console.error("razorpay create", { status: rzRes.status, code: rz?.error?.code });
       return json(req, { error: "Could not create payment order" }, { status: 502 });
     }
 
@@ -95,7 +99,7 @@ export async function POST(req: Request) {
 
     return json(req, { orderId: rz.id, amount: rz.amount, keyId, reference: ref });
   } catch (error: any) {
-    console.error("create order", error);
-    return json(req, { error: error?.message || "Could not create order" }, { status: 400 });
+    console.error("create order", error instanceof Error ? error.message : "unknown error");
+    return json(req, { error: "Could not create order" }, { status: 400 });
   }
 }

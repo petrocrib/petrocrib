@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cart — PETROCRIB</title>
+<meta name="description" content="Review your Petrocrib cart and complete your order securely with Razorpay.">
+<link rel="icon" type="image/png" sizes="256x256" href="assets/img/favicon.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bayon&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/cart-page.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="index.html"><img class="logo-img" src="assets/img/logo.png" alt="Petrocrib"></a>
+    <nav class="nav">
+      <a href="index.html#shop">Shop</a>
+      <a href="contact.html">Contact<span class="hm"> us</span></a>
+    </nav>
+  </div>
+</header>
+
+<main class="cart-page-main">
+  <div class="wrap">
+    <div class="cart-page-heading">
+      <div>
+        <div class="cart-page-kicker">Ready when you are</div>
+        <h1>Your cart</h1>
+      </div>
+      <a class="cp-continue" href="index.html#shop">← Continue shopping</a>
+    </div>
+
+    <div id="cartPageInner" class="cp-grid">
+      <section class="cp-panel" aria-labelledby="cartItemsTitle">
+        <div class="cp-panel-head">
+          <h2 id="cartItemsTitle">Your items</h2>
+          <span id="cpItemCount">0 items</span>
+        </div>
+        <div id="cpItems" class="cp-items"></div>
+      </section>
+
+      <aside id="cpCheckout" class="cp-panel cp-checkout" aria-label="Checkout details">
+        <section class="cp-section">
+          <h2>Delivery details</h2>
+          <div class="cp-field-grid">
+            <div class="cp-field">
+              <label for="cpName">Full name</label>
+              <input id="cpName" autocomplete="name" placeholder="Your name">
+            </div>
+            <div class="cp-field">
+              <label for="cpPhone">Phone</label>
+              <input id="cpPhone" autocomplete="tel" placeholder="WhatsApp preferred">
+            </div>
+            <div class="cp-field full">
+              <label for="cpEmail">Email</label>
+              <input id="cpEmail" type="email" autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div class="cp-field full">
+              <label for="cpAddr">Full address</label>
+              <textarea id="cpAddr" rows="4" autocomplete="street-address" placeholder="House / flat, street, area, city, state"></textarea>
+            </div>
+            <div class="cp-field">
+              <label for="cpPin">Pincode</label>
+              <input id="cpPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit pincode">
+            </div>
+          </div>
+        </section>
+
+        <section class="cp-section">
+          <h2>Order summary</h2>
+          <div class="cp-summary-row"><span>Subtotal</span><strong id="cpSubtotal">₹0</strong></div>
+          <div class="cp-summary-row"><span>Delivery</span><strong class="cp-free">FREE</strong></div>
+          <div class="cp-summary-total"><span>Total</span><strong id="cpTotal">₹0</strong></div>
+          <button class="btn cp-pay" id="cpPay" type="button">Pay securely with Razorpay</button>
+          <div class="cp-secure-note">UPI · Cards · Netbanking</div>
+          <div class="cp-secure-strip"><span class="cp-lock">✓</span><span>Secure payment powered by Razorpay</span></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="f-col"><img class="f-logo" src="assets/img/logo.png" alt="Petrocrib"><p>Setting the standard for meme culture tees in Kerala.</p></div>
+    <div class="f-col"><h3>Need help?</h3><a href="contact.html">Contact us</a><a href="policies.html#shipping">Shipping policy</a></div>
+    <div class="f-col"><h3>Policies</h3><a href="policies.html#privacy">Privacy policy</a><a href="policies.html#refunds">Cancellations &amp; refunds</a><a href="policies.html#terms">Terms &amp; conditions</a></div>
+  </div>
+  <div class="wrap f-bottom"><p>© PETROCRIB. All designs are ours. All dialogues are eternal.</p><p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p></div>
+</footer>
+
+<script src="config.js"></script>
+<script src="assets/js/analytics.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="assets/js/cart.js"></script>
+</body>
+</html>

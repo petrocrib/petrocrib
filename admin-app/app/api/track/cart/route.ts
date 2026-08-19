@@ -1,5 +1,5 @@
 import { db, uid } from "@/lib/db";
-import { json, preflight } from "@/lib/http";
+import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +8,7 @@ export function OPTIONS(req: Request) { return preflight(req); }
 
 export async function POST(req: Request) {
   try {
+    if (!isStoreRequestAllowed(req)) return json(req, { error: "Forbidden" }, { status: 403 });
     const body = await req.json();
     const sessionId = String(body.sessionId || "").slice(0, 120);
     if (!sessionId) return json(req, { error: "sessionId required" }, { status: 400 });
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     `;
     return json(req, { ok: true, itemCount, cartValue });
   } catch (error) {
-    console.error("track cart", error);
+    console.error("track cart", error instanceof Error ? error.message : "unknown error");
     return json(req, { error: "cart tracking unavailable" }, { status: 500 });
   }
 }

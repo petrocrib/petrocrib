@@ -1,0 +1,42 @@
+name: Petrocrib Storefront Vercel CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'product.html'
+      - 'contact.html'
+      - 'policies.html'
+      - 'config.js'
+      - 'products.js'
+      - 'products.json'
+      - 'assets/**'
+      - 'package.json'
+      - 'build-static.mjs'
+      - 'vercel.json'
+      - '.github/workflows/storefront-vercel-ci.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'product.html'
+      - 'contact.html'
+      - 'policies.html'
+      - 'config.js'
+      - 'products.js'
+      - 'products.json'
+      - 'assets/**'
+      - 'package.json'
+      - 'build-static.mjs'
+      - 'vercel.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm run build
+      - run: test -f dist/index.html && test -f dist/product.html && test -f dist/assets/css/style.css && test -f dist/assets/js/cart.js

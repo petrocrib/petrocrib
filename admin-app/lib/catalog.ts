@@ -8,6 +8,16 @@ type Product = {
   sizes?: string[];
 };
 
+const PAYMENT_TEST_PRODUCT: Product = {
+  handle: "payment-test-1",
+  title: "Payment Test ₹1",
+  images: ["https://www.petrocrib.in/assets/img/logo.png"],
+  types: ["Test"],
+  typePrices: { Test: 1 },
+  colors: [],
+  sizes: []
+};
+
 let cache: { at: number; products: Product[] } | null = null;
 
 async function products() {
@@ -22,7 +32,7 @@ async function products() {
 
 export async function validateCart(raw: any[]) {
   if (!Array.isArray(raw) || !raw.length || raw.length > 30) throw new Error("Invalid cart");
-  const catalogue = await products();
+  const catalogue = [...await products(), PAYMENT_TEST_PRODUCT];
   const result = [] as any[];
 
   for (const input of raw) {

@@ -1,6 +1,8 @@
 # PETROCRIB — static store
 
-Your Shopify store rebuilt as a free static website: 19 products, variant picker (type / color / size), Razorpay-ready checkout. Hosted free on GitHub Pages.
+Your Shopify store rebuilt as a free static website: 19 products, variant picker (type / color / size), Razorpay-ready checkout.
+
+> Production storefront deployment is now managed through Vercel from the `main` branch. The existing payment backend remains unchanged during the hosting migration.
 
 ## 1. Save your images first (important!)
 
@@ -14,29 +16,13 @@ It downloads all 95 photos into `images/` and updates `products.json` to use the
 
 ## 2. Set up payments (Razorpay)
 
-GitHub Pages can't run server code, so use **Razorpay Payment Pages** (free, no code):
-
-1. Log in at dashboard.razorpay.com → **Payment Pages** → Create
-2. Create one page per price: ₹500, ₹700, ₹800, ₹1000, ₹1300
-3. On each page add input fields: **Product name, Size, Color** (plus name/phone/address)
-4. Open `config.js` and paste each page URL next to its price
-
-When a customer taps **Buy now**, their selection ("Rizz Khan | Oversized Tee | Black | Size L") is copied to their clipboard and the Razorpay page opens — they paste it in the product field and pay.
+The current storefront uses the existing Razorpay-compatible checkout backend configured in `config.js`.
 
 Optional: put your WhatsApp number in `config.js` as a fallback ordering method.
 
-## 3. Put it on GitHub Pages (free hosting)
+## 3. Hosting
 
-1. Create an account at github.com if you don't have one
-2. Click **+** (top right) → **New repository** → name it `petrocrib` → Create
-3. On the repo page click **uploading an existing file**, drag **all files and folders** from this folder in, and click **Commit changes**
-   - If the `images/` folder is too big for one upload, upload it in batches
-4. Go to **Settings → Pages** → under "Branch" choose `main` and `/ (root)` → **Save**
-5. Wait ~2 minutes. Your store is live at:
-   `https://YOUR-USERNAME.github.io/petrocrib/`
-
-### Custom domain (optional)
-If you own a domain (e.g. petrocrib.in), in **Settings → Pages** add it under Custom domain, then at your domain provider create a CNAME record pointing to `YOUR-USERNAME.github.io`.
+The production storefront is deployed to Vercel from the repository root. Vercel runs the root `npm run build` command and publishes the generated `dist/` directory.
 
 ## Editing later
 
@@ -44,4 +30,4 @@ If you own a domain (e.g. petrocrib.in), in **Settings → Pages** add it under 
 - **Payment links / WhatsApp**: edit `config.js`
 - **Colors / fonts / styling**: edit `assets/css/style.css`
 
-Every time you edit a file on GitHub (pencil icon → commit), the live site updates in ~1 minute.
+Every commit to `main` can trigger a new production deployment in Vercel.

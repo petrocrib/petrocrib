@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { db, uid } from "@/lib/db";
-import { json, preflight } from "@/lib/http";
+import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,10 +15,14 @@ function validSig(orderId: string, paymentId: string, signature: string, secret:
 
 export async function POST(req: Request) {
   try {
+    if (!isStoreRequestAllowed(req)) return json(req, { valid: false }, { status: 403 });
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) return json(req, { valid: false }, { status: 415 });
+
     const body = await req.json();
-    const browserOrderId = String(body.razorpay_order_id || "");
-    const paymentId = String(body.razorpay_payment_id || "");
-    const signature = String(body.razorpay_signature || "");
+    const browserOrderId = String(body.razorpay_order_id || "").slice(0, 120);
+    const paymentId = String(body.razorpay_payment_id || "").slice(0, 120);
+    const signature = String(body.razorpay_signature || "").slice(0, 256);
     const keyId = process.env.RAZORPAY_KEY_ID;
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!browserOrderId || !paymentId || !signature || !keyId || !secret) {
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
     });
     const payment: any = await rzRes.json();
     if (!rzRes.ok) {
-      console.error("razorpay payment lookup", payment);
+      console.error("razorpay payment lookup", { status: rzRes.status, code: payment?.error?.code });
       return json(req, { valid: false }, { status: 502 });
     }
 
@@ -104,7 +108,7 @@ export async function POST(req: Request) {
 
     return json(req, { valid: true, reference });
   } catch (error) {
-    console.error("verify payment", error);
+    console.error("verify payment", error instanceof Error ? error.message : "unknown error");
     return json(req, { valid: false }, { status: 500 });
   }
 }

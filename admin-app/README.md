@@ -33,3 +33,5 @@ This staged rollout prevents the working checkout from being replaced before the
 ## Acquisition analytics
 
 The tracker records both first-touch and latest-touch acquisition context. Sources are normalized into Direct, Google, Instagram, Facebook, YouTube, WhatsApp and Other Referral where possible. UTM source, medium, campaign, content and term values are retained for campaign reporting.
+
+Git-connected deployments should use the repository `main` branch with `admin-app` as the Vercel Root Directory.

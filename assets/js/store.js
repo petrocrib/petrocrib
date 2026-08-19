@@ -2,6 +2,19 @@
 
 const money = (n) => "₹" + Number(n).toLocaleString("en-IN");
 
+const PAYMENT_TEST_PRODUCT = {
+  handle: "payment-test-1",
+  title: "Payment Test ₹1",
+  body: "<p>This is a temporary hidden product used only to verify Petrocrib's Razorpay checkout, webhook and admin order flow. It is not part of the public catalogue.</p>",
+  images: ["assets/img/logo.png"],
+  types: ["Test"],
+  typePrices: { Test: 1 },
+  colors: [],
+  sizes: [],
+  minPrice: 1,
+  maxPrice: 1
+};
+
 async function loadProducts() {
   if (typeof PRODUCTS !== "undefined") return PRODUCTS;
   const res = await fetch("products.json");
@@ -49,7 +62,7 @@ async function renderProduct() {
   if (!root) return;
   const handle = new URLSearchParams(location.search).get("handle");
   const products = await loadProducts();
-  const p = products.find((x) => x.handle === handle) || products[0];
+  const p = handle === PAYMENT_TEST_PRODUCT.handle ? PAYMENT_TEST_PRODUCT : (products.find((x) => x.handle === handle) || products[0]);
   document.title = p.title + " — " + STORE_CONFIG.storeName;
   if (window.PCAnalytics) PCAnalytics.track("product_view", { productId: p.handle, productTitle: p.title });
 
@@ -79,7 +92,7 @@ async function renderProduct() {
   const sgEl = document.getElementById("sizeGuide");
   function paint() {
     priceEl.textContent = money(currentPrice());
-    if (sgEl) sgEl.innerHTML = guideTable(guideForType(state.type));
+    if (sgEl) sgEl.innerHTML = p.sizes.length ? guideTable(guideForType(state.type)) : "";
     setActive("typePills", state.type); setActive("colorPills", state.color); setActive("sizePills", state.size);
     if (STORE_CONFIG.WORKER_URL) { noteEl.textContent = "Free delivery across India. Add multiple designs to one order!"; return; }
     const link = STORE_CONFIG.razorpayLinks[currentPrice()];

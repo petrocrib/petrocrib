@@ -1,6 +1,6 @@
 import { db, uid } from "@/lib/db";
 import { classifySource } from "@/lib/source";
-import { json, preflight } from "@/lib/http";
+import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export function OPTIONS(req: Request) { return preflight(req); }
 
 export async function POST(req: Request) {
   try {
+    if (!isStoreRequestAllowed(req)) return json(req, { error: "Forbidden" }, { status: 403 });
     const body = await req.json();
     const sessionId = String(body.sessionId || "").slice(0, 120);
     const eventType = String(body.eventType || "").slice(0, 80);
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     }
     return json(req, { ok: true });
   } catch (error) {
-    console.error("track event", error);
+    console.error("track event", error instanceof Error ? error.message : "unknown error");
     return json(req, { error: "event tracking unavailable" }, { status: 500 });
   }
 }

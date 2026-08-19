@@ -1,3 +1,5 @@
+import { listStoreProducts } from "./products";
+
 type Product = {
   handle: string;
   title: string;
@@ -8,21 +10,9 @@ type Product = {
   sizes?: string[];
 };
 
-let cache: { at: number; products: Product[] } | null = null;
-
-async function products() {
-  if (cache && Date.now() - cache.at < 5 * 60 * 1000) return cache.products;
-  const res = await fetch("https://petrocrib.in/products.json", { cache: "no-store" });
-  if (!res.ok) throw new Error("Catalogue unavailable");
-  const data = await res.json();
-  if (!Array.isArray(data)) throw new Error("Invalid catalogue");
-  cache = { at: Date.now(), products: data };
-  return data as Product[];
-}
-
 export async function validateCart(raw: any[]) {
   if (!Array.isArray(raw) || !raw.length || raw.length > 30) throw new Error("Invalid cart");
-  const catalogue = await products();
+  const catalogue = await listStoreProducts() as Product[];
   const result = [] as any[];
 
   for (const input of raw) {

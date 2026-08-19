@@ -21,9 +21,8 @@
    ============================================================ */
 
 const STORE_CONFIG = {
-  // New admin/backend base URL. Keep blank until the Vercel backend is ready.
-  // Example: "https://petrocrib-admin.vercel.app"
-  BACKEND_URL: "",
+  // New admin/backend base URL. Analytics is enabled against the Vercel backend.
+  BACKEND_URL: "https://petrocrib-admin.vercel.app",
 
   // Existing checkout backend. This remains unchanged until the new backend
   // is tested and ready to replace it.

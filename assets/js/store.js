@@ -1,11 +1,26 @@
-/* PETROCRIB static store engine */
+/* PETROCRIB store engine — database catalogue with static fallback */
 
 const money = (n) => "₹" + Number(n).toLocaleString("en-IN");
+let productsPromise = null;
 
 async function loadProducts() {
-  if (typeof PRODUCTS !== "undefined") return PRODUCTS;
-  const res = await fetch("products.json");
-  return res.json();
+  if (productsPromise) return productsPromise;
+  productsPromise = (async () => {
+    try {
+      const base = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.BACKEND_URL) ? STORE_CONFIG.BACKEND_URL.replace(/\/$/, "") : "";
+      if (base) {
+        const res = await fetch(base + "/api/store/products", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.products) && data.products.length) return data.products;
+        }
+      }
+    } catch (e) {}
+    if (typeof PRODUCTS !== "undefined" && Array.isArray(PRODUCTS)) return PRODUCTS;
+    const res = await fetch("products.json", { cache: "no-store" });
+    return res.json();
+  })();
+  return productsPromise;
 }
 
 async function renderGrid() {
@@ -18,9 +33,13 @@ async function renderGrid() {
     const seq = phrases.map((ph) => `<span>${ph}</span><i>•</i>`).join("").repeat(4);
     track.innerHTML = `<em>${seq}</em><em>${seq}</em>`;
   }
+  if (!products.length) {
+    grid.innerHTML = `<div class="empty">No designs are live right now. Check back soon.</div>`;
+    return;
+  }
   grid.innerHTML = products.map((p) => {
     const priceLabel = money(p.minPrice);
-    const img = p.images[0] || "";
+    const img = (p.images || [])[0] || "";
     return `
       <a class="card" href="product.html?handle=${encodeURIComponent(p.handle)}">
         <div class="thumb"><img loading="lazy" src="${img}" alt="${escapeHtml(p.title)}"></div>
@@ -50,25 +69,32 @@ async function renderProduct() {
   const handle = new URLSearchParams(location.search).get("handle");
   const products = await loadProducts();
   const p = products.find((x) => x.handle === handle) || products[0];
+  if (!p) {
+    root.innerHTML = `<div class="pinfo"><h1>Product unavailable</h1><p>This design is not currently live.</p><a class="back" href="index.html#shop">← Back to all designs</a></div>`;
+    return;
+  }
+  const colors = Array.isArray(p.colors) ? p.colors : [];
+  const sizes = Array.isArray(p.sizes) ? p.sizes : [];
+  const images = Array.isArray(p.images) ? p.images : [];
   document.title = p.title + " — " + STORE_CONFIG.storeName;
   if (window.PCAnalytics) PCAnalytics.track("product_view", { productId: p.handle, productTitle: p.title });
 
-  const state = { type: p.types[0], color: p.colors[0] || "", size: "M", imgIndex: 0 };
-  if (!p.sizes.includes(state.size)) state.size = p.sizes[0] || "";
+  const state = { type: p.types[0], color: colors[0] || "", size: "M", imgIndex: 0 };
+  if (!sizes.includes(state.size)) state.size = sizes[0] || "";
 
   root.innerHTML = `
     <div class="gallery">
-      <div class="main"><img id="mainImg" src="${p.images[0] || ""}" alt="${escapeHtml(p.title)}"></div>
-      <div class="thumbs" id="thumbs">${p.images.map((s,i)=>`<img src="${s}" data-i="${i}" class="${i===0?"active":""}" alt="view ${i+1}">`).join("")}</div>
+      <div class="main"><img id="mainImg" src="${images[0] || ""}" alt="${escapeHtml(p.title)}"></div>
+      <div class="thumbs" id="thumbs">${images.map((s,i)=>`<img src="${s}" data-i="${i}" class="${i===0?"active":""}" alt="view ${i+1}">`).join("")}</div>
     </div>
     <div class="pinfo">
       <h1>${escapeHtml(p.title)}</h1><div class="price" id="price"></div>
       <div class="opt-group"><div class="label">Clothing type</div><div class="pills" id="typePills">${p.types.map((t)=>`<button class="pill" data-v="${escapeHtml(t)}">${escapeHtml(t)} — ${money(p.typePrices[t])}</button>`).join("")}</div></div>
-      ${p.colors.length ? `<div class="opt-group"><div class="label">Color</div><div class="pills" id="colorPills">${p.colors.map((c)=>`<button class="pill" data-v="${escapeHtml(c)}">${escapeHtml(cap(c))}</button>`).join("")}</div></div>` : ""}
-      ${p.sizes.length ? `<div class="opt-group"><div class="label">Size</div><div class="pills" id="sizePills">${p.sizes.map((s)=>`<button class="pill" data-v="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join("")}</div></div>` : ""}
+      ${colors.length ? `<div class="opt-group"><div class="label">Color</div><div class="pills" id="colorPills">${colors.map((c)=>`<button class="pill" data-v="${escapeHtml(c)}">${escapeHtml(cap(c))}</button>`).join("")}</div></div>` : ""}
+      ${sizes.length ? `<div class="opt-group"><div class="label">Size</div><div class="pills" id="sizePills">${sizes.map((s)=>`<button class="pill" data-v="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join("")}</div></div>` : ""}
       <div class="buy-row"><button class="btn secondary" id="addBtn">Add to cart</button><button class="btn" id="buyBtn">Buy now</button></div>
       <div class="order-note" id="orderNote"></div><div id="sizeGuide"></div>
-      <div class="desc">${p.body}</div><a class="back" href="index.html">← Back to all designs</a>
+      <div class="desc">${p.body || ""}</div><a class="back" href="index.html">← Back to all designs</a>
     </div>`;
 
   const priceEl = document.getElementById("price");
@@ -92,11 +118,12 @@ async function renderProduct() {
   bindPills("colorPills",(v)=>{state.color=v;paint();});
   bindPills("sizePills",(v)=>{state.size=v;paint();});
 
-  document.getElementById("thumbs").addEventListener("click",(e)=>{const t=e.target.closest("img[data-i]");if(!t)return;document.getElementById("mainImg").src=p.images[+t.dataset.i];document.querySelectorAll("#thumbs img").forEach((im)=>im.classList.remove("active"));t.classList.add("active");});
+  const thumbs = document.getElementById("thumbs");
+  if (thumbs) thumbs.addEventListener("click",(e)=>{const t=e.target.closest("img[data-i]");if(!t)return;document.getElementById("mainImg").src=images[+t.dataset.i];document.querySelectorAll("#thumbs img").forEach((im)=>im.classList.remove("active"));t.classList.add("active");});
   const addBtn = document.getElementById("addBtn");
   const cartOn = !!(STORE_CONFIG.WORKER_URL && window.Cart);
   if (!cartOn && addBtn) addBtn.style.display = "none";
-  function cartItem(){return{productId:p.handle,title:p.title,variant:`${state.type} / ${cap(state.color)} / ${state.size}`,price:currentPrice(),img:p.images[0]||""};}
+  function cartItem(){return{productId:p.handle,title:p.title,variant:`${state.type} / ${cap(state.color)} / ${state.size}`,price:currentPrice(),img:images[0]||""};}
   if (cartOn && addBtn) addBtn.addEventListener("click",()=>Cart.add(cartItem(),false));
   buyBtn.addEventListener("click",async()=>{
     if(cartOn){Cart.add(cartItem(),true);return;}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { db, uid } from "@/lib/db";
+import { isSameOriginRequest } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,15 +19,16 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       sql`SELECT * FROM "OrderItem" WHERE "orderId"=${id} ORDER BY "id"`,
       sql`SELECT * FROM "OrderUpdate" WHERE "orderId"=${id} ORDER BY "createdAt" DESC`
     ]);
-    return NextResponse.json({ order: orders[0], items, updates });
+    return NextResponse.json({ order: orders[0], items, updates }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("order detail", error);
+    console.error("order detail", error instanceof Error ? error.message : "unknown error");
     return NextResponse.json({ error: "Order unavailable" }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isSameOriginRequest(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   try {
     const { id } = await params;
     const body = await req.json();
@@ -45,9 +47,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (title && message) {
       await sql`INSERT INTO "OrderUpdate" ("id","orderId","status","title","message","visibleToCustomer") VALUES (${uid("upd")},${id},${status || null},${title},${message},${visible})`;
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("order update", error);
+    console.error("order update", error instanceof Error ? error.message : "unknown error");
     return NextResponse.json({ error: "Could not update order" }, { status: 500 });
   }
 }

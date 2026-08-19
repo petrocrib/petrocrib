@@ -37,108 +37,36 @@
     <div id="cartPageInner" class="cp-grid">
       <section class="cp-panel cp-items-panel" aria-labelledby="cartItemsTitle">
         <div class="cp-panel-head">
-          <div>
-            <h2 id="cartItemsTitle">Your items</h2>
-            <p>Review size, colour and quantity before you pay.</p>
-          </div>
+          <div><h2 id="cartItemsTitle">Your items</h2><p>Review size, colour and quantity before you pay.</p></div>
           <span id="cpItemCount">0 items</span>
         </div>
         <div id="cpItems" class="cp-items"></div>
       </section>
 
       <aside id="cpCheckout" class="cp-panel cp-checkout" aria-label="Checkout details">
-        <div class="cp-checkout-top">
-          <div class="cp-checkout-kicker">Secure checkout</div>
-          <h2>Complete your order</h2>
-          <div class="cp-progress" aria-label="Checkout progress">
-            <span class="on"><b>1</b> Details</span>
-            <i></i>
-            <span><b>2</b> Pay</span>
-          </div>
-        </div>
-
+        <div class="cp-checkout-top"><div class="cp-checkout-kicker">Secure checkout</div><h2>Complete your order</h2><div class="cp-progress" aria-label="Checkout progress"><span class="on"><b>1</b> Details</span><i></i><span><b>2</b> Pay</span></div></div>
         <section class="cp-section cp-delivery-section">
-          <div class="cp-section-title-row">
-            <span class="cp-step">1</span>
-            <div>
-              <h2>Delivery details</h2>
-              <p>We’ll use these details for this order and delivery updates.</p>
-            </div>
-          </div>
-
+          <div class="cp-section-title-row"><span class="cp-step">1</span><div><h2>Delivery details</h2><p>We’ll use these details for this order and delivery updates.</p></div></div>
           <div class="cp-field-grid">
-            <div class="cp-field" id="cpNameField">
-              <label for="cpName">Full name <span>*</span></label>
-              <input id="cpName" autocomplete="name" placeholder="Your full name" aria-describedby="cpNameError">
-              <div class="cp-field-error" id="cpNameError" aria-live="polite"></div>
-            </div>
-            <div class="cp-field" id="cpPhoneField">
-              <label for="cpPhone">Phone <span>*</span></label>
-              <input id="cpPhone" autocomplete="tel" inputmode="tel" placeholder="WhatsApp preferred" aria-describedby="cpPhoneError">
-              <div class="cp-field-error" id="cpPhoneError" aria-live="polite"></div>
-            </div>
-            <div class="cp-field full" id="cpEmailField">
-              <label for="cpEmail">Email <span>*</span></label>
-              <input id="cpEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-describedby="cpEmailError">
-              <div class="cp-field-error" id="cpEmailError" aria-live="polite"></div>
-            </div>
-            <div class="cp-field full" id="cpAddrField">
-              <label for="cpAddr">Full address <span>*</span></label>
-              <textarea id="cpAddr" rows="4" autocomplete="street-address" placeholder="House / flat, street, area, city, state" aria-describedby="cpAddrError"></textarea>
-              <div class="cp-field-error" id="cpAddrError" aria-live="polite"></div>
-            </div>
-            <div class="cp-field" id="cpPinField">
-              <label for="cpPin">Pincode <span>*</span></label>
-              <input id="cpPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit pincode" aria-describedby="cpPinError">
-              <div class="cp-field-error" id="cpPinError" aria-live="polite"></div>
-            </div>
+            <div class="cp-field" id="cpNameField"><label for="cpName">Full name <span>*</span></label><input id="cpName" autocomplete="name" placeholder="Your full name" aria-describedby="cpNameError"><div class="cp-field-error" id="cpNameError" aria-live="polite"></div></div>
+            <div class="cp-field" id="cpPhoneField"><label for="cpPhone">Phone <span>*</span></label><input id="cpPhone" autocomplete="tel" inputmode="tel" placeholder="WhatsApp preferred" aria-describedby="cpPhoneError"><div class="cp-field-error" id="cpPhoneError" aria-live="polite"></div></div>
+            <div class="cp-field full" id="cpEmailField"><label for="cpEmail">Email <span>*</span></label><input id="cpEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-describedby="cpEmailError"><div class="cp-field-error" id="cpEmailError" aria-live="polite"></div></div>
+            <div class="cp-field full" id="cpAddrField"><label for="cpAddr">Full address <span>*</span></label><textarea id="cpAddr" rows="4" autocomplete="street-address" placeholder="House / flat, street, area, city, state" aria-describedby="cpAddrError"></textarea><div class="cp-field-error" id="cpAddrError" aria-live="polite"></div></div>
+            <div class="cp-field" id="cpPinField"><label for="cpPin">Pincode <span>*</span></label><input id="cpPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit pincode" aria-describedby="cpPinError"><div class="cp-field-error" id="cpPinError" aria-live="polite"></div></div>
           </div>
         </section>
-
         <section class="cp-section cp-review-section">
-          <div class="cp-section-title-row">
-            <span class="cp-step">2</span>
-            <div>
-              <h2>Review &amp; pay</h2>
-              <p>Final amount before opening Razorpay.</p>
-            </div>
-          </div>
-
-          <div class="cp-summary-card">
-            <div class="cp-summary-row"><span id="cpSummaryItems">Items</span><strong id="cpSubtotal">₹0</strong></div>
-            <div class="cp-summary-row"><span>Delivery across India</span><strong class="cp-free">FREE</strong></div>
-            <div class="cp-summary-total"><span>Total</span><strong id="cpTotal">₹0</strong></div>
-          </div>
-
-          <button class="btn cp-pay" id="cpPay" type="button">Pay securely with Razorpay</button>
-          <div class="cp-payment-methods">UPI · Cards · Netbanking</div>
-          <p class="cp-payment-copy">Payment details are handled securely by Razorpay. Petrocrib does not store your card or UPI credentials.</p>
-
-          <div class="cp-trust-grid">
-            <div><span>✓</span><b>Secure checkout</b></div>
-            <div><span>✓</span><b>Free delivery</b></div>
-            <div><span>✓</span><b>7-day support</b></div>
-          </div>
+          <div class="cp-section-title-row"><span class="cp-step">2</span><div><h2>Review &amp; pay</h2><p>Final amount before opening Razorpay.</p></div></div>
+          <div class="cp-summary-card"><div class="cp-summary-row"><span id="cpSummaryItems">Items</span><strong id="cpSubtotal">₹0</strong></div><div class="cp-summary-row"><span>Delivery across India</span><strong class="cp-free">FREE</strong></div><div class="cp-summary-total"><span>Total</span><strong id="cpTotal">₹0</strong></div></div>
+          <button class="btn cp-pay" id="cpPay" type="button">Pay securely with Razorpay</button><div class="cp-payment-methods">UPI · Cards · Netbanking</div><p class="cp-payment-copy">Payment details are handled securely by Razorpay. Petrocrib does not store your card or UPI credentials.</p>
+          <div class="cp-trust-grid"><div><span>✓</span><b>Secure checkout</b></div><div><span>✓</span><b>Free delivery</b></div><div><span>✓</span><b>7-day support</b></div></div>
         </section>
       </aside>
     </div>
   </div>
 </main>
 
-<footer class="site-footer">
-  <div class="wrap footer-grid">
-    <div class="f-col"><img class="f-logo" src="assets/img/logo.png" alt="Petrocrib"><p>Setting the standard for meme culture tees in Kerala.</p></div>
-    <div class="f-col"><h3>Need help?</h3><a href="contact.html">Contact us</a><a href="policies.html#shipping">Shipping policy</a></div>
-    <div class="f-col"><h3>Policies</h3><a href="policies.html#privacy">Privacy policy</a><a href="policies.html#refunds">Cancellations &amp; refunds</a><a href="policies.html#terms">Terms &amp; conditions</a></div>
-  </div>
-  <div class="wrap f-bottom"><p>© PETROCRIB. All designs are ours. All dialogues are eternal.</p><p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p></div>
-</footer>
-
-<script src="config.js"></script>
-<script src="assets/js/analytics.js"></script>
-<script src="products.js"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="assets/js/cart.js?v=20260820-4"></script>
-<script src="assets/js/cart-images.js?v=20260820-4"></script>
+<footer class="site-footer"><div class="wrap footer-grid"><div class="f-col"><img class="f-logo" src="assets/img/logo.png" alt="Petrocrib"><p>Setting the standard for meme culture tees in Kerala.</p></div><div class="f-col"><h3>Need help?</h3><a href="contact.html">Contact us</a><a href="policies.html#shipping">Shipping policy</a></div><div class="f-col"><h3>Policies</h3><a href="policies.html#privacy">Privacy policy</a><a href="policies.html#refunds">Cancellations &amp; refunds</a><a href="policies.html#terms">Terms &amp; conditions</a></div></div><div class="wrap f-bottom"><p>© PETROCRIB. All designs are ours. All dialogues are eternal.</p><p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p></div></footer>
+<script src="config.js"></script><script src="assets/js/analytics.js"></script><script src="products.js"></script><script src="https://checkout.razorpay.com/v1/checkout.js"></script><script src="assets/js/cart.js?v=20260820-4"></script><script src="assets/js/cart-images.js?v=20260820-5"></script>
 </body>
 </html>

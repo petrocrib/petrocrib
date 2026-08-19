@@ -5,6 +5,7 @@ const out = "dist";
 const rootFiles = [
   "index.html",
   "product.html",
+  "cart.html",
   "contact.html",
   "policies.html",
   "config.js",

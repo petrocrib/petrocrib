@@ -1,6 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 export type AdminProduct = {
@@ -28,6 +27,8 @@ type Props = {
 
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const TARGET_UPLOAD_BYTES = 2.6 * 1024 * 1024;
 
 function blankProduct(sortOrder: number): AdminProduct {
   return {
@@ -47,6 +48,78 @@ function blankProduct(sortOrder: number): AdminProduct {
   };
 }
 
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`${file.name}: could not read this image.`)); };
+    image.src = url;
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Could not optimise image.")), "image/webp", quality);
+  });
+}
+
+async function prepareImage(file: File): Promise<File> {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) throw new Error(`${file.name}: use JPG, PNG or WebP.`);
+  if (file.size <= TARGET_UPLOAD_BYTES) return file;
+
+  const image = await loadImage(file);
+  const attempts = [
+    { max: 2400, quality: 0.88 },
+    { max: 2100, quality: 0.82 },
+    { max: 1800, quality: 0.76 },
+    { max: 1500, quality: 0.72 },
+  ];
+
+  for (const attempt of attempts) {
+    const scale = Math.min(1, attempt.max / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) throw new Error("Could not prepare image for upload.");
+    ctx.drawImage(image, 0, 0, width, height);
+    const blob = await canvasToBlob(canvas, attempt.quality);
+    if (blob.size <= TARGET_UPLOAD_BYTES) {
+      const base = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-") || "product-image";
+      return new File([blob], `${base}.webp`, { type: "image/webp", lastModified: Date.now() });
+    }
+  }
+
+  throw new Error(`${file.name}: image is too large. Try a smaller image.`);
+}
+
+async function sendImage(file: File, handle: string) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("handle", handle);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 90000);
+  try {
+    const response = await fetch("/api/admin/products/upload", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+      credentials: "same-origin",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.url) throw new Error(data.error || "Image upload failed");
+    return String(data.url);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new Error("Image upload timed out. Please try again.");
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export default function ProductManager({ products, onReload }: Props) {
   const [q, setQ] = useState("");
   const [draft, setDraft] = useState<AdminProduct | null>(null);
@@ -54,6 +127,7 @@ export default function ProductManager({ products, onReload }: Props) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const [error, setError] = useState("");
 
   const filtered = useMemo(() => {
@@ -64,12 +138,16 @@ export default function ProductManager({ products, onReload }: Props) {
 
   function startNew() {
     setError("");
+    setUploadError("");
+    setUploadStatus("");
     setHandleTouched(false);
     setDraft(blankProduct(Math.max(0, ...products.map(p => Number(p.sortOrder || 0))) + 10));
   }
 
   function startEdit(product: AdminProduct) {
     setError("");
+    setUploadError("");
+    setUploadStatus("");
     setHandleTouched(true);
     setDraft({
       ...product,
@@ -126,28 +204,24 @@ export default function ProductManager({ products, onReload }: Props) {
   async function uploadImages(files: FileList | null) {
     if (!draft || !files?.length) return;
     setUploading(true);
+    setUploadError("");
     setError("");
     try {
       const next = [...draft.images];
       const handle = draft.handle || slugify(draft.title) || "new-product";
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(`${file.name}: use JPG, PNG or WebP.`);
+        const original = files[i];
+        setUploadStatus(`Preparing ${i + 1} of ${files.length}…`);
+        const prepared = await prepareImage(original);
         setUploadStatus(`Uploading ${i + 1} of ${files.length}…`);
-        const cleanName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
-        const blob = await upload(`products/${handle}/${Date.now()}-${cleanName}`, file, {
-          access: "public",
-          handleUploadUrl: "/api/admin/products/upload",
-          multipart: true,
-          onUploadProgress: ({ percentage }) => setUploadStatus(`Uploading ${i + 1} of ${files.length} · ${Math.round(percentage)}%`),
-        });
-        next.push(blob.url);
+        const url = await sendImage(prepared, handle);
+        next.push(url);
+        setDraft(d => d ? { ...d, images: [...next].slice(0, 24) } : d);
       }
-      setDraft(d => d ? { ...d, images: next.slice(0, 24) } : d);
       setUploadStatus("Upload complete ✓");
       setTimeout(() => setUploadStatus(""), 1800);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Image upload failed");
+      setUploadError(e instanceof Error ? e.message : "Image upload failed");
       setUploadStatus("");
     } finally {
       setUploading(false);
@@ -284,8 +358,9 @@ export default function ProductManager({ products, onReload }: Props) {
           </section>
 
           <section className="editorSection">
-            <div className="editorSectionHead"><div><h3>Product images</h3><p>The first image is the cover. Upload JPG, PNG or WebP directly from your device.</p></div><label className={`btn ${uploading ? "disabled" : ""}`}>+ Upload images<input className="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} onChange={e => { uploadImages(e.currentTarget.files); e.currentTarget.value = ""; }} /></label></div>
+            <div className="editorSectionHead"><div><h3>Product images</h3><p>The first image is the cover. Large images are automatically optimised before upload.</p></div><label className={`btn ${uploading ? "disabled" : ""}`}>+ Upload images<input className="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} onChange={e => { uploadImages(e.currentTarget.files); e.currentTarget.value = ""; }} /></label></div>
             {uploadStatus && <div className="uploadStatus">{uploadStatus}</div>}
+            {uploadError && <div className="error">{uploadError}</div>}
             <div className="imageEditorGrid">
               {draft.images.map((src, i) => <div className="imageEditCard" key={`${src}-${i}`}>
                 <img src={src} alt="" />

@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     }
     await sql`INSERT INTO "OrderUpdate" ("id","orderId","status","title","message") VALUES (${uid("upd")},${orderId},'PAYMENT_PENDING','Checkout started','Order created and awaiting payment.')`;
 
-    return json(req, { orderId: rz.id, amount: rz.amount, keyId, reference: ref });
+    return json(req, { orderId: rz.id, amount: rz.amount, keyId, reference: null });
   } catch (error: any) {
     console.error("create order", error instanceof Error ? error.message : "unknown error");
     return json(req, { error: "Could not create order" }, { status: 400 });

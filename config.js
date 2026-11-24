@@ -21,10 +21,10 @@ const STORE_CONFIG = {
     1300: "",
   },
 
-  whatsappNumber: "",
+  whatsappNumber: "918129477575",
 
   instagram: "petrocrib_",
   email: "petrocrib@gmail.com",
-  phone: "",
-  address: "",
+  phone: "+91 8129477575",
+  address: "Venmony Tazham, Venmony PO, Chengannur, Alappuzha District, Kerala 689509, India",
 };

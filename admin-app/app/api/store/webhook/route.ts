@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { db, uid } from "@/lib/db";
+import { sendOrderProcessingEmail } from "@/src/lib/order-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,26 @@ function validWebhookSignature(rawBody: string, signature: string, secret: strin
   }
 }
 
+async function sendProcessingConfirmation(order: any) {
+  try {
+    const sql = db();
+    const [customerRows, items] = await Promise.all([
+      sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
+      sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
+    ]);
+    const customer: any = customerRows[0] || {};
+    await sendOrderProcessingEmail({
+      id: String(order.id),
+      reference: String(order.reference),
+      total: order.total,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      items: items as any[],
+    }, `order-confirmation/${order.id}`);
+  } catch (emailErr) {
+    console.error("processing email error", emailErr instanceof Error ? emailErr.message : "unknown error");
+  }
+}
 async function markPaid(razorpayOrderId: string, paymentId: string, amount: number, currency: string) {
   const sql = db();
   const rows = await sql`
@@ -25,7 +46,10 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
   const existing: any = rows[0];
   if (String(currency || "").toUpperCase() !== "INR") return;
   if (Number(amount) !== Number(existing.total) * 100) return;
-  if (existing.paymentStatus === "paid") return;
+  if (existing.paymentStatus === "paid") {
+    if (String(existing.razorpayPaymentId || "") === paymentId) await sendProcessingConfirmation(existing);
+    return;
+  }
 
   const changed = await sql`
     UPDATE "Order"
@@ -33,7 +57,17 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
     WHERE "id"=${existing.id} AND "paymentStatus"<>'paid'
     RETURNING "id","reference","customerId","sessionId","total"
   `;
-  if (!changed.length) return;
+  if (!changed.length) {
+    const latestRows = await sql`
+      SELECT "id","reference","customerId","total","paymentStatus","razorpayPaymentId"
+      FROM "Order" WHERE "id"=${existing.id} LIMIT 1
+    `;
+    const latest: any = latestRows[0] || {};
+    if (latest.paymentStatus === "paid" && String(latest.razorpayPaymentId || "") === paymentId) {
+      await sendProcessingConfirmation(latest);
+    }
+    return;
+  }
 
   const order: any = changed[0];
   await sql`
@@ -47,6 +81,8 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
     INSERT INTO "OrderUpdate" ("id","orderId","status","title","message")
     VALUES (${uid("upd")},${order.id},'PAID','Payment received','Razorpay confirmed the payment. Your order is now confirmed for processing.')
   `;
+
+  await sendProcessingConfirmation(order);
 
   if (order.sessionId) {
     await sql`

@@ -31,6 +31,26 @@ export async function POST(req: Request) {
     }
 
     const sql = db();
+
+    const sendProcessingConfirmation = async (order: any) => {
+      try {
+        const [customerRows, items] = await Promise.all([
+          sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
+          sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
+        ]);
+        const customer: any = customerRows[0] || {};
+        await sendOrderProcessingEmail({
+          id: String(order.id),
+          reference: String(order.reference),
+          total: order.total,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          items: items as any[],
+        }, `order-confirmation/${order.id}`);
+      } catch (emailErr) {
+        console.error("processing email error", emailErr instanceof Error ? emailErr.message : "unknown error");
+      }
+    };
     const orderRows = await sql`
       SELECT "id","reference","customerId","sessionId","total","razorpayOrderId","razorpayPaymentId","paymentStatus"
       FROM "Order" WHERE "razorpayOrderId"=${browserOrderId} LIMIT 1
@@ -83,23 +103,7 @@ export async function POST(req: Request) {
         INSERT INTO "OrderUpdate" ("id","orderId","status","title","message")
         VALUES (${uid("upd")},${order.id},'PAID','Payment received','Payment was verified directly with Razorpay and is confirmed for processing.')
       `;
-      try {
-        const [customerRows, items] = await Promise.all([
-          sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
-          sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
-        ]);
-        const customer: any = customerRows[0] || {};
-        await sendOrderProcessingEmail({
-          id: String(order.id),
-          reference,
-          total: order.total,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          items: items as any[],
-        });
-      } catch (emailErr) {
-        console.error("processing email error", emailErr instanceof Error ? emailErr.message : "unknown error");
-      }
+      await sendProcessingConfirmation(order);
       if (order.sessionId) {
         await sql`
           UPDATE "CartPresence"
@@ -118,10 +122,13 @@ export async function POST(req: Request) {
         }
       }
     } else {
-      const alreadyPaid =
-        stored.paymentStatus === "paid" &&
-        String(stored.razorpayPaymentId || "") === paymentId;
+      const latestPaidRows = await sql`
+        SELECT "paymentStatus","razorpayPaymentId" FROM "Order" WHERE "id"=${stored.id} LIMIT 1
+      `;
+      const latestPaid: any = latestPaidRows[0] || {};
+      const alreadyPaid = latestPaid.paymentStatus === "paid" && String(latestPaid.razorpayPaymentId || "") === paymentId;
       if (!alreadyPaid) return json(req, { valid: false }, { status: 409 });
+      await sendProcessingConfirmation(stored);
     }
 
     return json(req, { valid: true, reference });

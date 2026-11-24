@@ -3,6 +3,7 @@
   if (typeof STORE_CONFIG === "undefined" || !STORE_CONFIG.WORKER_URL) return;
 
   const WURL = STORE_CONFIG.WORKER_URL.replace(/\/$/, "");
+  const GCR_MERCHANT_ID = 5682078277;
   const rs = (n) => "₹" + Number(n).toLocaleString("en-IN");
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -59,6 +60,62 @@
     if (!btn) return;
     btn.disabled = !!busy;
     btn.textContent = label || payLabel();
+  }
+
+  function detectDeliveryCountry(addressText) {
+    const text = String(addressText || "").toLowerCase();
+    if (/\b(australia|sydney|melbourne|brisbane|perth|adelaide|au)\b/.test(text)) return "AU";
+    if (/\b(canada|toronto|vancouver|montreal|calgary|ottawa|ca)\b/.test(text)) return "CA";
+    if (/\b(uae|united arab emirates|dubai|abu dhabi|sharjah|ajman|ae)\b/.test(text)) return "AE";
+    if (/\b(uk|united kingdom|england|scotland|wales|london|manchester|gb)\b/.test(text)) return "GB";
+    if (/\b(usa|united states|america|new york|california|texas|florida|us)\b/.test(text)) return "US";
+    return "IN";
+  }
+
+  function getEstimatedDeliveryDate(countryCode) {
+    const daysToAdd = countryCode === "IN" ? 5 : 14;
+    const d = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function renderGoogleCustomerReviewOptIn(orderId, customerData) {
+    if (!orderId || !customerData || !customerData.email) return;
+
+    const deliveryCountry = detectDeliveryCountry(customerData.address);
+    const estimatedDeliveryDate = getEstimatedDeliveryDate(deliveryCountry);
+
+    const optInPayload = {
+      merchant_id: GCR_MERCHANT_ID,
+      order_id: String(orderId),
+      email: String(customerData.email).trim(),
+      delivery_country: deliveryCountry,
+      estimated_delivery_date: estimatedDeliveryDate,
+    };
+
+    window.renderOptIn = function () {
+      if (!window.gapi || !window.gapi.load) return;
+      window.gapi.load("surveyoptin", function () {
+        if (window.gapi.surveyoptin && typeof window.gapi.surveyoptin.render === "function") {
+          window.gapi.surveyoptin.render(optInPayload);
+        }
+      });
+    };
+
+    if (window.gapi && window.gapi.load) {
+      window.renderOptIn();
+      return;
+    }
+
+    if (!document.querySelector('script[src*="apis.google.com/js/platform.js"]')) {
+      const s = document.createElement("script");
+      s.src = "https://apis.google.com/js/platform.js?onload=renderOptIn";
+      s.async = true;
+      s.defer = true;
+      document.body.appendChild(s);
+    }
   }
 
   function saveAndRender() {
@@ -168,7 +225,7 @@
   function showPaymentResult(ok, resp, verified, data) {
     const root = $("cartPageInner");
     if (!root) return;
-    const reference = verified.reference || data.reference || "";
+    const reference = verified.reference || data.reference || resp.razorpay_payment_id || "";
     const amountPaid = data.amount ? rs(Number(data.amount) / 100) : "";
     root.innerHTML = `<section class="cp-success">
       <div class="cp-success-badge">${ok ? "✓ Payment verified" : "Payment received"}</div>
@@ -193,6 +250,14 @@
     if (!cart.length) return toast("Cart is empty");
     if (!validateAll()) return toast("Check the highlighted delivery details");
 
+    const orderCustomer = {
+      name: cust.name,
+      phone: cust.phone,
+      email: cust.email,
+      address: cust.address,
+      pincode: cust.pincode,
+    };
+
     setPayButton(true, "Preparing payment…");
     if (window.PCAnalytics) PCAnalytics.track("checkout_start", { value: total(), metadata: { itemCount: itemCount() } });
 
@@ -203,7 +268,7 @@
         body: JSON.stringify({
           sessionId: window.PCAnalytics ? PCAnalytics.sessionId() : null,
           items: cart.map((i) => ({ title: i.title, variant: i.variant, price: i.price, qty: i.qty })),
-          customer: { name: cust.name, phone: cust.phone, email: cust.email, address: cust.address, pincode: cust.pincode },
+          customer: orderCustomer,
         }),
       });
       const data = await res.json();
@@ -217,7 +282,7 @@
         currency: "INR",
         name: "PETROCRIB",
         description: itemCount() + " item(s)",
-        prefill: { name: cust.name, contact: cust.phone, email: cust.email },
+        prefill: { name: orderCustomer.name, contact: orderCustomer.phone, email: orderCustomer.email },
         theme: { color: "#fcd019" },
         modal: { ondismiss: resetButton },
         handler: async (resp) => {
@@ -237,6 +302,11 @@
           }
           if (window.PCAnalytics) PCAnalytics.track(ok ? "checkout_success" : "checkout_verification_pending", { value: data.amount / 100, metadata: { reference: verified.reference || data.reference || "" } });
           showPaymentResult(ok, resp, verified, data);
+
+          if (ok) {
+            const orderRef = verified.reference || data.reference || resp.razorpay_payment_id;
+            renderGoogleCustomerReviewOptIn(orderRef, orderCustomer);
+          }
         },
       });
 

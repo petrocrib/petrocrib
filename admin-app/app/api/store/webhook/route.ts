@@ -20,7 +20,7 @@ async function sendProcessingConfirmation(order: any) {
     const sql = db();
     const [customerRows, items] = await Promise.all([
       sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
-      sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
+      sql`SELECT "productId","title","variant","unitPrice","quantity","image" FROM "OrderItem" WHERE "orderId"=${order.id}`,
     ]);
     const customer: any = customerRows[0] || {};
     await sendOrderProcessingEmail({
@@ -51,9 +51,11 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
     return;
   }
 
+  await sql`CREATE SEQUENCE IF NOT EXISTS "OrderReferenceSequence" START WITH 1`;
   const changed = await sql`
     UPDATE "Order"
-    SET "razorpayPaymentId"=${paymentId}, "paymentStatus"='paid', "fulfillmentStatus"='PAID', "updatedAt"=NOW()
+    SET "reference"='PC-' || to_char(NOW() AT TIME ZONE 'Asia/Kolkata', 'YYYY') || '-' || LPAD(nextval('"OrderReferenceSequence"')::text, 5, '0'),
+        "razorpayPaymentId"=${paymentId}, "paymentStatus"='paid', "fulfillmentStatus"='PAID', "updatedAt"=NOW()
     WHERE "id"=${existing.id} AND "paymentStatus"<>'paid'
     RETURNING "id","reference","customerId","sessionId","total"
   `;
@@ -91,7 +93,7 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
       WHERE "sessionId"=${order.sessionId}
     `;
     const items = await sql`
-      SELECT "productId","title","variant","unitPrice","quantity"
+      SELECT "productId","title","variant","unitPrice","quantity","image"
       FROM "OrderItem" WHERE "orderId"=${order.id}
     `;
     for (const item of items as any[]) {

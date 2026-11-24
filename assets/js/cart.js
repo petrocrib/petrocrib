@@ -254,6 +254,7 @@
       name: cust.name,
       phone: cust.phone,
       email: cust.email,
+      marketingConsent: !!($("cpMarketingConsent") && $("cpMarketingConsent").checked),
       address: cust.address,
       pincode: cust.pincode,
     };

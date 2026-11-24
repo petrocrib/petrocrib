@@ -31,3 +31,5 @@
 @media(max-width:520px){.orderModalBackdrop{padding:10px}.orderEditorHeader{padding:17px}.orderEditorBody{padding:16px}.orderEditorSummary{grid-template-columns:1fr 1fr}.orderEditorSummary>div:first-child{grid-column:1/-1}.orderEditorFields{grid-template-columns:1fr}.orderEditorFooter{padding:12px 16px}}
 
 :root{--yellow:#fcd019;--soft:#fff9d9}h1,h2,h3,.heroRow h1,.catalogHero h1,.sectionTitle h2,.loginCard h1{font-family:"Bungee",cursive;letter-spacing:.01em}body{font-family:"Bayon",Arial,sans-serif;font-size:16px;letter-spacing:.015em}.btn{border-radius:999px}.adminNav button{font-family:"Bayon",sans-serif;font-size:14px}
+
+.adminNav a{border:0;background:transparent;color:#aaa;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.adminNav a:hover{background:#fff;color:#111}.archiveOrderBtn{background:#f1f1ee;border-color:#ddd;color:#555}.archiveOrderBtn:hover{background:#f8e9e9;border-color:#e8bcbc;color:#a32626}@media(max-width:800px){.adminNav{overflow-x:auto;justify-content:flex-start}.adminNav a,.adminNav button{flex:0 0 auto}}

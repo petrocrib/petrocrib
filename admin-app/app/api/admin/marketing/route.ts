@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const subject = typeof body.subject === "string" ? body.subject.trim().slice(0, 180) : "";
     const message = typeof body.message === "string" ? body.message.trim().slice(0, 12000) : "";
+    const segment = ["all","returning","inactive90","vip"].includes(body.segment) ? body.segment : "all";
     if (subject.length < 3 || message.length < 5) return NextResponse.json({ error: "Add a subject and message before sending." }, { status: 400 });
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.FROM_EMAIL;
@@ -42,6 +43,12 @@ export async function POST(req: Request) {
     const recipients = await sql`
       SELECT "id","email","name","marketingUnsubscribeToken" FROM "Customer"
       WHERE "marketingConsent"=true AND "marketingUnsubscribedAt" IS NULL AND "email" IS NOT NULL AND "email" <> ''
+        AND (
+          ${segment} = 'all' OR
+          (${segment} = 'returning' AND "totalOrders" > 1) OR
+          (${segment} = 'inactive90' AND "lastOrderAt" < NOW() - INTERVAL '90 days') OR
+          (${segment} = 'vip' AND "lifetimeValue" >= 3000)
+        )
       ORDER BY "createdAt" ASC
     `;
     if (!recipients.length) return NextResponse.json({ error: "No customers have opted in to promotional emails." }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { db, uid } from "@/lib/db";
 import { isSameOriginRequest } from "@/lib/http";
+import { sendOrderShippedEmail } from "@/src/lib/order-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const message = typeof body.message === "string" ? body.message.trim().slice(0, 1200) : "";
     const visible = body.visibleToCustomer !== false;
     const sql = db();
+    const currentOrders = await sql`SELECT "fulfillmentStatus","trackingNumber" FROM "Order" WHERE "id"=${id} LIMIT 1`;
+    if (!currentOrders.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const currentOrder: any = currentOrders[0];
+    const isNewlyShipped = status === "SHIPPED" && String(currentOrder.fulfillmentStatus || "").toUpperCase() !== "SHIPPED";
+    const trackingChanged = tracking !== undefined && tracking.length > 0 &&
+      tracking !== String(currentOrder.trackingNumber || "").trim();
 
     if (status) await sql`UPDATE "Order" SET "fulfillmentStatus"=${status}, "updatedAt"=NOW() WHERE "id"=${id}`;
     if (courier !== undefined || tracking !== undefined) {
@@ -47,6 +54,35 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (title && message) {
       await sql`INSERT INTO "OrderUpdate" ("id","orderId","status","title","message","visibleToCustomer") VALUES (${uid("upd")},${id},${status || null},${title},${message},${visible})`;
     }
+    if (isNewlyShipped || trackingChanged) {
+      try {
+        const finalOrderRows = await sql`
+          SELECT "id","reference","customerId","total","fulfillmentStatus","courier","trackingNumber"
+          FROM "Order" WHERE "id"=${id} LIMIT 1
+        `;
+        const finalOrder: any = finalOrderRows[0];
+        if (finalOrder && String(finalOrder.fulfillmentStatus || "").toUpperCase() === "SHIPPED") {
+          const [customerRows, items] = await Promise.all([
+            sql`SELECT "name","email" FROM "Customer" WHERE "id"=${finalOrder.customerId} LIMIT 1`,
+            sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${finalOrder.id}`,
+          ]);
+          const customer: any = customerRows[0] || {};
+          await sendOrderShippedEmail({
+            id: String(finalOrder.id),
+            reference: String(finalOrder.reference),
+            total: finalOrder.total,
+            customerName: customer.name,
+            customerEmail: customer.email,
+            items: items as any[],
+            courier: finalOrder.courier,
+            trackingNumber: finalOrder.trackingNumber,
+          });
+        }
+      } catch (emailErr) {
+        console.error("shipped email error", emailErr instanceof Error ? emailErr.message : "unknown error");
+      }
+    }
+
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("order update", error instanceof Error ? error.message : "unknown error");

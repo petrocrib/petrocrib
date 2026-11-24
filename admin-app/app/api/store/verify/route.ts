@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { db, uid } from "@/lib/db";
 import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
+import { sendOrderProcessingEmail } from "@/src/lib/order-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,6 +83,23 @@ export async function POST(req: Request) {
         INSERT INTO "OrderUpdate" ("id","orderId","status","title","message")
         VALUES (${uid("upd")},${order.id},'PAID','Payment received','Payment was verified directly with Razorpay and is confirmed for processing.')
       `;
+      try {
+        const [customerRows, items] = await Promise.all([
+          sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
+          sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
+        ]);
+        const customer: any = customerRows[0] || {};
+        await sendOrderProcessingEmail({
+          id: String(order.id),
+          reference,
+          total: order.total,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          items: items as any[],
+        });
+      } catch (emailErr) {
+        console.error("processing email error", emailErr instanceof Error ? emailErr.message : "unknown error");
+      }
       if (order.sessionId) {
         await sql`
           UPDATE "CartPresence"

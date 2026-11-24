@@ -1,131 +1,159 @@
-import { createHmac, timingSafeEqual } from "crypto";
-import { db, uid } from "@/lib/db";
-import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
-import { sendOrderProcessingEmail } from "@/lib/order-emails";
+import { Resend } from "resend";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+type OrderEmailItem = {
+  title: string;
+  variant?: string | null;
+  unitPrice: number | string;
+  quantity: number | string;
+};
 
-export function OPTIONS(req: Request) { return preflight(req); }
+type OrderEmailDetails = {
+  id: string;
+  reference: string;
+  total: number | string;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  items: OrderEmailItem[];
+};
 
-function validSig(orderId: string, paymentId: string, signature: string, secret: string) {
-  const expected = createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
-  if (expected.length !== signature.length) return false;
-  try { return timingSafeEqual(Buffer.from(expected), Buffer.from(signature)); } catch { return false; }
+type ShippedEmailDetails = OrderEmailDetails & {
+  courier?: string | null;
+  trackingNumber?: string | null;
+};
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character] || character)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-export async function POST(req: Request) {
-  try {
-    if (!isStoreRequestAllowed(req)) return json(req, { valid: false }, { status: 403 });
-    const contentType = req.headers.get("content-type") || "";
-    if (!contentType.toLowerCase().includes("application/json")) return json(req, { valid: false }, { status: 415 });
+function formatCurrency(value: number | string): string {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "₹0.00";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
-    const body = await req.json();
-    const browserOrderId = String(body.razorpay_order_id || "").slice(0, 120);
-    const paymentId = String(body.razorpay_payment_id || "").slice(0, 120);
-    const signature = String(body.razorpay_signature || "").slice(0, 256);
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-    if (!browserOrderId || !paymentId || !signature || !keyId || !secret) {
-      return json(req, { valid: false }, { status: 400 });
-    }
+function emailShell(title: string, content: string): string {
+  return (
+    '<!doctype html><html><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    "<title>" + escapeHtml(title) + "</title></head>" +
+    '<body style="margin:0;padding:32px 12px;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#152238">' +
+    '<div style="max-width:600px;margin:0 auto;padding:32px;background:#ffffff;border-radius:12px">' +
+    '<div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#142b4a;margin-bottom:28px">PETROCRIB</div>' +
+    content +
+    '<p style="margin:28px 0 0;color:#718096;font-size:12px;line-height:1.6">Thank you for shopping with PETROCRIB.</p>' +
+    "</div></body></html>"
+  );
+}
 
-    const sql = db();
-    const orderRows = await sql`
-      SELECT "id","reference","customerId","sessionId","total","razorpayOrderId","razorpayPaymentId","paymentStatus"
-      FROM "Order" WHERE "razorpayOrderId"=${browserOrderId} LIMIT 1
-    `;
-    if (!orderRows.length) return json(req, { valid: false }, { status: 404 });
+function orderItemsHtml(items: OrderEmailItem[], total: number | string): string {
+  const rows = (Array.isArray(items) ? items : []).map((item) => {
+    const title = escapeHtml(item.title || "Item");
+    const variant = item.variant
+      ? '<div style="margin-top:4px;color:#718096;font-size:12px">' + escapeHtml(item.variant) + "</div>"
+      : "";
+    const quantity = Number(item.quantity) || 0;
+    const unitPrice = Number(item.unitPrice) || 0;
+    return (
+      '<tr><td style="padding:12px 8px;border-bottom:1px solid #e8edf3">' + title + variant + "</td>" +
+      '<td style="padding:12px 8px;border-bottom:1px solid #e8edf3;text-align:center">' + quantity + "</td>" +
+      '<td style="padding:12px 8px;border-bottom:1px solid #e8edf3;text-align:right">' +
+      formatCurrency(unitPrice * quantity) + "</td></tr>"
+    );
+  }).join("");
 
-    const stored: any = orderRows[0];
-    const storedOrderId = String(stored.razorpayOrderId || "");
-    if (!validSig(storedOrderId, paymentId, signature, secret)) {
-      return json(req, { valid: false }, { status: 400 });
-    }
+  return (
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:20px 0">' +
+    '<thead><tr style="color:#718096;font-size:12px;text-align:left">' +
+    '<th style="padding:8px">ITEM</th><th style="padding:8px;text-align:center">QTY</th>' +
+    '<th style="padding:8px;text-align:right">AMOUNT</th></tr></thead>' +
+    "<tbody>" + (rows || '<tr><td colspan="3" style="padding:12px 8px;color:#718096">Order items unavailable</td></tr>') +
+    '<tr><td colspan="2" style="padding:14px 8px;font-weight:700">Order total</td>' +
+    '<td style="padding:14px 8px;text-align:right;font-weight:700">' + formatCurrency(total) + "</td></tr>" +
+    "</tbody></table>"
+  );
+}
 
-    const rzRes = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { "Authorization": `Basic ${Buffer.from(`${keyId}:${secret}`).toString("base64")}` },
-      cache: "no-store"
-    });
-    const payment: any = await rzRes.json();
-    if (!rzRes.ok) {
-      console.error("razorpay payment lookup", { status: rzRes.status, code: payment?.error?.code });
-      return json(req, { valid: false }, { status: 502 });
-    }
+function orderItemsText(items: OrderEmailItem[]): string {
+  const lines = (Array.isArray(items) ? items : []).map((item) => {
+    const quantity = Number(item.quantity) || 0;
+    const unitPrice = Number(item.unitPrice) || 0;
+    const variant = item.variant ? " (" + item.variant + ")" : "";
+    return "- " + item.title + variant + " x " + quantity + " — " + formatCurrency(unitPrice * quantity);
+  });
+  return lines.length ? lines.join("\n") : "- Order items unavailable";
+}
 
-    const paymentMatches =
-      String(payment.order_id || "") === storedOrderId &&
-      String(payment.currency || "").toUpperCase() === "INR" &&
-      Number(payment.amount) === Number(stored.total) * 100 &&
-      (payment.status === "captured" || payment.captured === true);
+async function deliverEmail(to: string, subject: string, html: string, text: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.FROM_EMAIL;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
+  if (!from) throw new Error("FROM_EMAIL is not configured");
+  if (!to.trim()) throw new Error("Customer email address is missing");
 
-    if (!paymentMatches) {
-      return json(req, { valid: false }, { status: 400 });
-    }
+  const resend = new Resend(apiKey);
+  const { error } = await resend.emails.send({
+    from,
+    to: to.trim(),
+    replyTo: process.env.REPLY_TO_EMAIL || undefined,
+    subject,
+    html,
+    text,
+  });
 
-    const changed = await sql`
-      UPDATE "Order"
-      SET "razorpayPaymentId"=${paymentId}, "paymentStatus"='paid', "fulfillmentStatus"='PAID', "updatedAt"=NOW()
-      WHERE "id"=${stored.id} AND "paymentStatus"<>'paid'
-      RETURNING "id","reference","customerId","sessionId","total"
-    `;
+  if (error) throw new Error("Resend delivery failed: " + error.message);
+}
 
-    let reference = String(stored.reference);
-    if (changed.length) {
-      const order: any = changed[0];
-      reference = String(order.reference);
-      await sql`
-        UPDATE "Customer"
-        SET "totalOrders"="totalOrders"+1, "lifetimeValue"="lifetimeValue"+${order.total}, "lastOrderAt"=NOW(), "updatedAt"=NOW()
-        WHERE "id"=${order.customerId}
-      `;
-      await sql`
-        INSERT INTO "OrderUpdate" ("id","orderId","status","title","message")
-        VALUES (${uid("upd")},${order.id},'PAID','Payment received','Payment was verified directly with Razorpay and is confirmed for processing.')
-      `;
+export async function sendOrderProcessingEmail(order: OrderEmailDetails): Promise<void> {
+  const reference = order.reference || order.id;
+  const customerName = order.customerName || "there";
+  const subject = "Order " + reference + " received — now processing";
+  const content =
+    '<h1 style="margin:0 0 12px;font-size:25px;color:#152238">We have received your order</h1>' +
+    '<p style="margin:0 0 18px;color:#526176;line-height:1.6">Hi ' + escapeHtml(customerName) +
+    ", your payment is confirmed and your order is now being processed.</p>" +
+    '<div style="padding:14px 16px;background:#f3f6fa;border-radius:8px">' +
+    '<div style="font-size:12px;color:#718096">ORDER REFERENCE</div>' +
+    '<div style="margin-top:5px;font-size:18px;font-weight:700">' + escapeHtml(reference) + "</div></div>" +
+    orderItemsHtml(order.items, order.total) +
+    '<p style="color:#526176;line-height:1.6">We will send you another email when your order has been shipped.</p>';
+  const text =
+    "Hi " + customerName + ",\n\nYour payment is confirmed and order " + reference +
+    " is now being processed.\n\nItems:\n" + orderItemsText(order.items) +
+    "\n\nOrder total: " + formatCurrency(order.total) +
+    "\n\nWe will email you when your order has shipped.\nPETROCRIB";
 
-      const [customerRows, items] = await Promise.all([
-        sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
-        sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`
-      ]);
-      const customer: any = customerRows[0] || {};
+  await deliverEmail(order.customerEmail || "", subject, emailShell(subject, content), text);
+}
 
-      try {
-        await sendOrderProcessingEmail({
-          id: String(order.id),
-          reference,
-          total: order.total,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          items: items as any[],
-        });
-      } catch (emailErr) {
-        console.error("processing email error", emailErr instanceof Error ? emailErr.message : "unknown error");
-      }
+export async function sendOrderShippedEmail(order: ShippedEmailDetails): Promise<void> {
+  const reference = order.reference || order.id;
+  const customerName = order.customerName || "there";
+  const courier = order.courier || "Not provided";
+  const trackingNumber = order.trackingNumber || "Not provided";
+  const subject = "Order " + reference + " has shipped";
+  const content =
+    '<h1 style="margin:0 0 12px;font-size:25px;color:#152238">Your order is on its way</h1>' +
+    '<p style="margin:0 0 18px;color:#526176;line-height:1.6">Hi ' + escapeHtml(customerName) +
+    ", your PETROCRIB order has been shipped.</p>" +
+    '<div style="padding:16px;background:#f3f6fa;border-radius:8px;line-height:1.8">' +
+    '<div><span style="color:#718096">ORDER REFERENCE</span><br><strong>' + escapeHtml(reference) + "</strong></div>" +
+    '<div style="margin-top:12px"><span style="color:#718096">COURIER</span><br><strong>' + escapeHtml(courier) + "</strong></div>" +
+    '<div style="margin-top:12px"><span style="color:#718096">TRACKING NUMBER</span><br><strong>' + escapeHtml(trackingNumber) + "</strong></div>" +
+    "</div>" +
+    '<p style="margin-top:20px;color:#526176;line-height:1.6">Keep your tracking number handy for delivery updates.</p>' +
+    orderItemsHtml(order.items, order.total);
+  const text =
+    "Hi " + customerName + ",\n\nYour PETROCRIB order " + reference + " has shipped." +
+    "\nCourier: " + courier + "\nTracking number: " + trackingNumber +
+    "\n\nItems:\n" + orderItemsText(order.items) +
+    "\n\nOrder total: " + formatCurrency(order.total) + "\nPETROCRIB";
 
-      if (order.sessionId) {
-        await sql`
-          UPDATE "CartPresence"
-          SET "items"='[]'::jsonb,"itemCount"=0,"cartValue"=0,"lastSeenAt"=NOW()
-          WHERE "sessionId"=${order.sessionId}
-        `;
-        for (const item of items as any[]) {
-          await sql`
-            INSERT INTO "AnalyticsEvent" ("id","sessionId","eventType","productId","productTitle","variant","value","metadata")
-            VALUES (${uid("ev")},${order.sessionId},'purchase',${item.productId},${item.title},${item.variant},${item.unitPrice * item.quantity},${JSON.stringify({ quantity: item.quantity, orderReference: order.reference, confirmedBy: "server_verify" })}::jsonb)
-          `;
-        }
-      }
-    } else {
-      const alreadyPaid =
-        stored.paymentStatus === "paid" &&
-        String(stored.razorpayPaymentId || "") === paymentId;
-      if (!alreadyPaid) return json(req, { valid: false }, { status: 409 });
-    }
-
-    return json(req, { valid: true, reference });
-  } catch (error) {
-    console.error("verify payment", error instanceof Error ? error.message : "unknown error");
-    return json(req, { valid: false }, { status: 500 });
-  }
+  await deliverEmail(order.customerEmail || "", subject, emailShell(subject, content), text);
 }

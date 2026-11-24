@@ -11,15 +11,17 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c] || c));
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const sql = db();
+    const requested = new URL(req.url).searchParams.get("segment") || "all";
+    const segment = ["all","returning","inactive90","vip"].includes(requested) ? requested : "all";
     const [audience, campaigns] = await Promise.all([
-      sql`SELECT COUNT(*)::int AS "eligibleCount" FROM "Customer" WHERE "marketingConsent"=true AND "marketingUnsubscribedAt" IS NULL AND "email" IS NOT NULL AND "email" <> ''`,
+      sql`SELECT COUNT(*)::int AS "eligibleCount" FROM "Customer" WHERE "marketingConsent"=true AND "marketingUnsubscribedAt" IS NULL AND "email" IS NOT NULL AND "email" <> '' AND (${segment} = 'all' OR (${segment} = 'returning' AND "totalOrders" > 1) OR (${segment} = 'inactive90' AND "lastOrderAt" < NOW() - INTERVAL '90 days') OR (${segment} = 'vip' AND "lifetimeValue" >= 3000))`,
       sql`SELECT * FROM "MarketingCampaign" ORDER BY "createdAt" DESC LIMIT 50`
     ]);
-    return NextResponse.json({ eligibleCount: Number((audience[0] as any)?.eligibleCount || 0), campaigns });
+    return NextResponse.json({ eligibleCount: Number((audience[0] as any)?.eligibleCount || 0), campaigns, segment });
   } catch (error) {
     console.error("marketing overview", error);
     return NextResponse.json({ error: "Marketing data unavailable. Apply the customer-retention migration first." }, { status: 500 });

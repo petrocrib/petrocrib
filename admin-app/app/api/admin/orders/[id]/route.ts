@@ -33,13 +33,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
+    const sql = db();
+    if (body.action === "archive" || body.action === "restore") {
+      const rows = body.action === "archive"
+        ? await sql`UPDATE "Order" SET "archivedAt"=NOW(), "archiveNote"=${typeof body.note === "string" ? body.note.slice(0,240) : "Archived by admin"}, "updatedAt"=NOW() WHERE "id"=${id} AND "archivedAt" IS NULL RETURNING "id"`
+        : await sql`UPDATE "Order" SET "archivedAt"=NULL, "archiveNote"=NULL, "updatedAt"=NOW() WHERE "id"=${id} AND "archivedAt" IS NOT NULL RETURNING "id"`;
+      if (!rows.length) return NextResponse.json({ error: "Order not found or already in that state" }, { status: 404 });
+      return NextResponse.json({ ok: true, action: body.action }, { headers: { "Cache-Control": "no-store" } });
+    }
     const status = typeof body.status === "string" && STATUSES.has(body.status) ? body.status : undefined;
     const courier = typeof body.courier === "string" ? body.courier.trim().slice(0, 120) : undefined;
     const tracking = typeof body.trackingNumber === "string" ? body.trackingNumber.trim().slice(0, 160) : undefined;
     const title = typeof body.title === "string" ? body.title.trim().slice(0, 160) : "";
     const message = typeof body.message === "string" ? body.message.trim().slice(0, 1200) : "";
     const visible = body.visibleToCustomer !== false;
-    const sql = db();
     const currentOrders = await sql`SELECT "fulfillmentStatus","trackingNumber" FROM "Order" WHERE "id"=${id} LIMIT 1`;
     if (!currentOrders.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const currentOrder: any = currentOrders[0];

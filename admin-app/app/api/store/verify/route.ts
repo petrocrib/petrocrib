@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       try {
         const [customerRows, items] = await Promise.all([
           sql`SELECT "name","email" FROM "Customer" WHERE "id"=${order.customerId} LIMIT 1`,
-          sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${order.id}`,
+          sql`SELECT "productId","title","variant","unitPrice","quantity","image" FROM "OrderItem" WHERE "orderId"=${order.id}`,
         ]);
         const customer: any = customerRows[0] || {};
         await sendOrderProcessingEmail({
@@ -83,9 +83,11 @@ export async function POST(req: Request) {
       return json(req, { valid: false }, { status: 400 });
     }
 
+    await sql`CREATE SEQUENCE IF NOT EXISTS "OrderReferenceSequence" START WITH 1`;
     const changed = await sql`
       UPDATE "Order"
-      SET "razorpayPaymentId"=${paymentId}, "paymentStatus"='paid', "fulfillmentStatus"='PAID', "updatedAt"=NOW()
+      SET "reference"='PC-' || to_char(NOW() AT TIME ZONE 'Asia/Kolkata', 'YYYY') || '-' || LPAD(nextval('"OrderReferenceSequence"')::text, 5, '0'),
+          "razorpayPaymentId"=${paymentId}, "paymentStatus"='paid', "fulfillmentStatus"='PAID', "updatedAt"=NOW()
       WHERE "id"=${stored.id} AND "paymentStatus"<>'paid'
       RETURNING "id","reference","customerId","sessionId","total"
     `;
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
           WHERE "sessionId"=${order.sessionId}
         `;
         const items = await sql`
-          SELECT "productId","title","variant","unitPrice","quantity"
+          SELECT "productId","title","variant","unitPrice","quantity","image"
           FROM "OrderItem" WHERE "orderId"=${order.id}
         `;
         for (const item of items as any[]) {
@@ -123,12 +125,13 @@ export async function POST(req: Request) {
       }
     } else {
       const latestPaidRows = await sql`
-        SELECT "paymentStatus","razorpayPaymentId" FROM "Order" WHERE "id"=${stored.id} LIMIT 1
+        SELECT "reference","paymentStatus","razorpayPaymentId" FROM "Order" WHERE "id"=${stored.id} LIMIT 1
       `;
       const latestPaid: any = latestPaidRows[0] || {};
       const alreadyPaid = latestPaid.paymentStatus === "paid" && String(latestPaid.razorpayPaymentId || "") === paymentId;
       if (!alreadyPaid) return json(req, { valid: false }, { status: 409 });
-      await sendProcessingConfirmation(stored);
+      reference = String(latestPaid.reference || stored.reference);
+      await sendProcessingConfirmation({ ...stored, reference });
     }
 
     return json(req, { valid: true, reference });

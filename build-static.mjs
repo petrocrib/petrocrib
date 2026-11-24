@@ -71,6 +71,13 @@ function normalizeTypeCode(type) {
   return "REG";
 }
 
+function getWeightGrams(type) {
+  const t = type.toLowerCase();
+  if (t.includes("oversized")) return "500 g";
+  if (t.includes("hoodie")) return "700 g";
+  return "400 g";
+}
+
 const rawProducts = await readFile("products.json", "utf8");
 const products = JSON.parse(rawProducts);
 
@@ -92,7 +99,7 @@ for (const product of products) {
       ? "Apparel & Accessories > Clothing > Outerwear > Coats & Jackets"
       : "Apparel & Accessories > Clothing > Shirts & Tops";
 
-    // Group variants by design + garment fit (Regular vs Oversized vs Hoodie)
+    const shippingWeight = getWeightGrams(type);
     const groupId = `${product.handle}-${normalizeTypeCode(type)}`.toUpperCase();
 
     for (const color of product.colors || []) {
@@ -101,7 +108,6 @@ for (const product of products) {
       for (const size of product.sizes || []) {
         const sku = `${groupId}-${color.slice(0, 3).toUpperCase()}-${size.toUpperCase()}`;
         const variantTitle = `${product.title} - ${type} (${colorLabel}, ${size})`;
-        // Matches standard product.html?handle=... routing; adjust if your product.html uses ?id=
         const productUrl = `${SITE_URL}/product.html?handle=${encodeURIComponent(product.handle)}`;
 
         const extraImgTags = additionalImages
@@ -118,6 +124,7 @@ for (const product of products) {
 ${extraImgTags}
       <g:availability>in_stock</g:availability>
       <g:price>${Number(price).toFixed(2)} INR</g:price>
+      <g:shipping_weight>${escapeXml(shippingWeight)}</g:shipping_weight>
       <g:brand>${escapeXml(BRAND)}</g:brand>
       <g:condition>new</g:condition>
       <g:identifier_exists>false</g:identifier_exists>

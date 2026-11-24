@@ -64,7 +64,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (finalOrder && String(finalOrder.fulfillmentStatus || "").toUpperCase() === "SHIPPED") {
           const [customerRows, items] = await Promise.all([
             sql`SELECT "name","email" FROM "Customer" WHERE "id"=${finalOrder.customerId} LIMIT 1`,
-            sql`SELECT "productId","title","variant","unitPrice","quantity" FROM "OrderItem" WHERE "orderId"=${finalOrder.id}`,
+            sql`SELECT "productId","title","variant","unitPrice","quantity","image" FROM "OrderItem" WHERE "orderId"=${finalOrder.id}`,
           ]);
           const customer: any = customerRows[0] || {};
           await sendOrderShippedEmail({

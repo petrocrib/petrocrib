@@ -14,7 +14,13 @@
 <body class="yellow-page">
 <header class="site-header"><div class="wrap"><a class="logo" href="index.html"><img class="logo-img" src="assets/img/logo.png" alt="Petrocrib"></a><nav class="nav"><a href="index.html#shop">Shop</a><a href="contact.html">Contact<span class="hm"> us</span></a></nav></div></header>
 <main class="wrap"><div class="product-layout" id="product"></div></main>
-<footer class="site-footer"><div class="wrap f-bottom"><p>© PETROCRIB · <a href="policies.html#privacy">Privacy</a> · <a href="policies.html#shipping">Shipping</a> · <a href="policies.html#refunds">Refunds</a> · <a href="policies.html#terms">Terms</a></p><p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p></div></footer>
+<footer class="site-footer">
+  <div class="wrap f-bottom">
+    <p>© PETROCRIB · <a href="policies.html#privacy">Privacy</a> · <a href="policies.html#shipping">Shipping</a> · <a href="policies.html#refunds">Refunds</a> · <a href="policies.html#terms">Terms</a></p>
+    <p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p>
+    <div id="gcr-badge" style="margin-top: 10px;"></div>
+  </div>
+</footer>
 <script src="config.js"></script>
 <script src="assets/js/analytics.js"></script>
 <script src="products.js"></script>
@@ -23,5 +29,26 @@
 <script src="assets/js/store.js?v=20260820-4"></script>
 <script src="assets/js/fx.js"></script>
 <script src="assets/js/music.js"></script>
+<script>
+  window.renderBadge = function () {
+    var badgeContainer = document.getElementById("gcr-badge");
+    if (!badgeContainer || !window.gapi || !window.gapi.load) return;
+    window.gapi.load("ratingbadge", function () {
+      if (window.gapi.ratingbadge && typeof window.gapi.ratingbadge.render === "function") {
+        window.gapi.ratingbadge.render(badgeContainer, {
+          merchant_id: 5682078277,
+          position: "INLINE"
+        });
+      }
+    });
+  };
+</script>
+<script src="https://apis.google.com/js/platform.js?onload=renderBadge" async defer></script>
 </body>
 </html>
+```[cite: 9]
+
+### How to Apply It
+1. Open **`product.html`** in your GitHub repository, click the **pencil icon** (Edit), select all (`Ctrl+A` / `Cmd+A`), paste the code above, and click **Commit changes**.
+2. Wait 1–2 minutes for **Vercel** to finish building and deploying `petrocrib.in`.
+3. Open any product page (for example, `[https://petrocrib.in/product.html?handle=chitram](https://petrocrib.in/product.html?handle=chitram)`) and hard-refresh (`Ctrl+Shift+R` or `Cmd+Shift+R`) to confirm it loads cleanly.

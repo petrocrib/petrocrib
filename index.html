@@ -46,7 +46,11 @@
     <div class="f-col"><h3>Contact us</h3><p id="fEmail"></p><p id="fPhone"></p><p id="fAddress"></p></div>
     <div class="f-col"><h3>Policies</h3><a href="policies.html#privacy">Privacy policy</a><a href="policies.html#terms">Terms &amp; conditions</a><a href="policies.html#shipping">Shipping policy</a><a href="policies.html#refunds">Cancellations &amp; refunds</a><a href="policies.html#contact">Contact<span class="hm"> us</span></a></div>
   </div>
-  <div class="wrap f-bottom"><p>© PETROCRIB. All designs are ours. All dialogues are eternal.</p><p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p></div>
+  <div class="wrap f-bottom">
+    <p>© PETROCRIB. All designs are ours. All dialogues are eternal.</p>
+    <p class="pay-note">Payments secured by Razorpay — UPI · Cards · Netbanking</p>
+    <div id="gcr-badge" style="margin-top: 10px;"></div>
+  </div>
 </footer>
 <script src="config.js"></script>
 <script src="assets/js/analytics.js"></script>
@@ -57,5 +61,20 @@
 <script src="assets/js/fx.js"></script>
 <script src="assets/js/bee3d.js"></script>
 <script src="assets/js/music.js"></script>
+<script>
+  window.renderBadge = function () {
+    var badgeContainer = document.getElementById("gcr-badge");
+    if (!badgeContainer || !window.gapi || !window.gapi.load) return;
+    window.gapi.load("ratingbadge", function () {
+      if (window.gapi.ratingbadge && typeof window.gapi.ratingbadge.render === "function") {
+        window.gapi.ratingbadge.render(badgeContainer, {
+          merchant_id: 5682078277,
+          position: "INLINE"
+        });
+      }
+    });
+  };
+</script>
+<script src="https://apis.google.com/js/platform.js?onload=renderBadge" async defer></script>
 </body>
 </html>

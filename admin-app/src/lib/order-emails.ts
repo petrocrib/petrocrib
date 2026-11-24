@@ -163,7 +163,7 @@ export async function sendOrderProcessingEmail(order: OrderEmailDetails, idempot
   const subject = "PETROCRIB | Order confirmed " + reference;
   const content =
     '<div style="display:inline-block;padding:7px 12px;background:' + YELLOW + ';color:' + BLACK + ';font-family:Bungee,Impact,Arial,sans-serif;font-size:10px;line-height:1.3">PAYMENT CONFIRMED ✓</div>' +
-    '<h1 style="margin:20px 0 12px;color:' + BLACK + ';font-family:Bungee,Impact,Arial,sans-serif;font-size:25px;line-height:1.35;font-weight:normal">Good taste. Great choice.</h1>' +
+    '<img src="https://petrocrib-admin.vercel.app/api/email-heading?type=confirmed" width="540" height="74" alt="GOOD TASTE. GREAT CHOICE." style="display:block;width:100%;max-width:540px;height:auto;margin:20px 0 12px;border:0;outline:none;text-decoration:none">' +
     '<p style="margin:0;color:#555555;font-family:Bayon,Arial,sans-serif;font-size:17px;line-height:1.55">Hey ' + escapeHtml(customerName) +
     ', your payment is in and your Petrocrib order is officially on the list. We’re getting your picks ready!</p>' +
     orderReferenceHtml(reference) +
@@ -186,7 +186,7 @@ export async function sendOrderShippedEmail(order: ShippedEmailDetails): Promise
   const subject = "PETROCRIB | Your order is on its way " + reference;
   const content =
     '<div style="display:inline-block;padding:7px 12px;background:' + BLACK + ';color:' + YELLOW + ';font-family:Bungee,Impact,Arial,sans-serif;font-size:10px;line-height:1.3">ORDER SHIPPED ↗</div>' +
-    '<h1 style="margin:20px 0 12px;color:' + BLACK + ';font-family:Bungee,Impact,Arial,sans-serif;font-size:25px;line-height:1.35;font-weight:normal">Your Petrocrib pick is on its way.</h1>' +
+    '<img src="https://petrocrib-admin.vercel.app/api/email-heading?type=shipped" width="540" height="74" alt="YOUR PETROCRIB PICK IS ON ITS WAY." style="display:block;width:100%;max-width:540px;height:auto;margin:20px 0 12px;border:0;outline:none;text-decoration:none">' +
     '<p style="margin:0;color:#555555;font-family:Bayon,Arial,sans-serif;font-size:17px;line-height:1.55">Hey ' + escapeHtml(customerName) +
     ', your order has left us. Keep an eye out — good things are headed your way!</p>' +
     orderReferenceHtml(reference, BLACK) +

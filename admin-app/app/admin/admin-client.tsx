@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {exportCsv} from "./export-csv";
 import ProductManager, { type AdminProduct } from "./product-manager";
 
@@ -36,12 +36,60 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const [editingTracking,setEditingTracking]=useState("");
   const [savingOrder,setSavingOrder]=useState(false);
   const [editError,setEditError]=useState("");
+  const [orderSoundEnabled,setOrderSoundEnabled]=useState(false);
+  const [orderSoundNotice,setOrderSoundNotice]=useState("");
+  const seenPaidOrders=useRef<Set<string>|null>(null);
+  const soundEnabledRef=useRef(false);
+  const audioContextRef=useRef<AudioContext|null>(null);
+
+  function playOrderChime(){
+    const ctx=audioContextRef.current;
+    if(!ctx) return;
+    void ctx.resume().then(()=>{
+      const now=ctx.currentTime;
+      for(const [frequency,delay] of [[880,0],[1320,0.13],[1760,0.27]]){
+        const oscillator=ctx.createOscillator();
+        const gain=ctx.createGain();
+        oscillator.type="sine";
+        oscillator.frequency.value=frequency;
+        gain.gain.setValueAtTime(0.0001,now+delay);
+        gain.gain.exponentialRampToValueAtTime(0.12,now+delay+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001,now+delay+0.28);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.start(now+delay);
+        oscillator.stop(now+delay+0.3);
+      }
+    }).catch(()=>{});
+  }
+
+  function enableOrderSound(){
+    try{
+      audioContextRef.current ??= new AudioContext();
+      void audioContextRef.current.resume();
+      soundEnabledRef.current=true;
+      setOrderSoundEnabled(true);
+      setOrderSoundNotice("Ka-ching enabled while this dashboard is open.");
+      playOrderChime();
+    }catch{
+      setOrderSoundNotice("Audio is unavailable in this browser.");
+    }
+  }
+
+  useEffect(()=>()=>{void audioContextRef.current?.close();},[]);
+
 
   async function loadDashboard(){
     const [m,o]=await Promise.all([fetch("/api/admin/metrics",{cache:"no-store"}),fetch(`/api/admin/orders${q?`?q=${encodeURIComponent(q)}`:""}`,{cache:"no-store"})]);
     if(m.status===401||o.status===401){setAuth("out");return false;}
     if(!m.ok||!o.ok){setError("Could not load dashboard data.");return false;}
     const [mj,oj]=await Promise.all([m.json(),o.json()]);
+    // Establish a baseline on first load: historical paid orders never trigger a chime.
+    const paidIds=new Set<string>((oj.orders||[]).filter((order:Order)=>String(order.paymentStatus||"").toLowerCase()==="paid").map((order:Order)=>String(order.id)));
+    if(seenPaidOrders.current!==null && soundEnabledRef.current){
+      const newPaid=[...paidIds].filter(id=>!seenPaidOrders.current!.has(id));
+      if(newPaid.length) playOrderChime();
+    }
+    seenPaidOrders.current=paidIds;
     setMetrics(mj);setOrders(oj.orders||[]);setAuth("in");setLast(new Date());setError("");
     return true;
   }
@@ -120,9 +168,9 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
 
     <main className="main">
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
-        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><button className="btn" onClick={loadDashboard}>Refresh now</button></div>
+        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={enableOrderSound}>{orderSoundEnabled?"🔔 Ka-ching on":"🔔 Enable ka-ching"}</button><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 
-        {tab==="dashboard"&&<><section className="grid metricGrid">
+        {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}\n        {tab==="dashboard"&&<><section className="grid metricGrid">
           <Metric label="Active users now" value={num(s.activeUsers)} sub="Seen in the last 3 min"/>
           <Metric label="Visitors today" value={num(s.visitorsToday)} sub={`${num(s.pageViewsToday)} page views`}/>
           <Metric label="Live carts" value={num(s.liveCarts)} sub={`${money(s.liveCartValue)} sitting in carts`}/>

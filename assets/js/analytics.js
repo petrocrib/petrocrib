@@ -75,11 +75,14 @@
     }else window.fbq('trackSingle',PIXEL,name,params);
   }
   function showAdsChoice(){
+    if(document.getElementById('pcAdsPreferences'))return;
     const panel=document.createElement('section');
+    panel.id='pcAdsPreferences';
     panel.setAttribute('aria-label','Advertising privacy preferences');
     panel.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;max-width:520px;z-index:10000;background:#171717;color:#fff;padding:16px;border:1px solid #fcd019;border-radius:8px;font:16px/1.5 system-ui';
     const msg=document.createElement('p');msg.textContent='Optional advertising cookies help us measure Meta ads and purchases. You can decline without affecting your order.';
     panel.appendChild(msg);
+    const link=document.createElement('a');link.href='policies.html#privacy';link.textContent='Privacy policy';link.style.color='#fcd019';panel.appendChild(link);
     for(const [label,value] of [['Allow advertising','yes'],['Decline','no']]){
       const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='margin:4px;padding:8px 12px;background:#fcd019;color:#111;border:0;border-radius:4px;cursor:pointer';
       b.onclick=()=>{const was=adsChoice;adsChoice=value;set(ADS_KEY,value);panel.remove();if(value==='yes'){try{pixelInit()}catch{}}else if(was==='yes'&&pixelStarted){try{window.fbq('consent','revoke')}catch{};location.reload()}};

@@ -620,3 +620,24 @@ body.yellow-page .btn.secondary { background: transparent; color: #000; border-c
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Advertising privacy: a compact, non-blocking, brand-native notice. */
+#pcAdsPreferences.pc-ads-panel {
+  position:fixed; z-index:1000; inset:auto auto max(16px,env(safe-area-inset-bottom)) 16px;
+  width:min(344px,calc(100% - 32px)); padding:18px 20px 14px;
+  background:#000; color:#fcd019; border:1px solid #fcd019; border-radius:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.32); font-family:'Bayon',system-ui,sans-serif;
+  line-height:1.4; letter-spacing:.025em; text-align:left;
+}
+#pcAdsPreferences h2 {font-family:'Bayon',system-ui,sans-serif;font-size:22px;line-height:1.15;color:#fcd019;margin:0 0 7px;}
+#pcAdsPreferences p {font-size:17px;color:#fcd019;margin:0 0 12px;line-height:1.4;}
+#pcAdsPreferences .pc-ads-actions {display:flex;gap:8px;}
+#pcAdsPreferences .pc-ads-actions button {
+  flex:1; min-height:44px; font:inherit; font-size:18px; letter-spacing:.04em;
+  text-transform:uppercase; cursor:pointer; border:1px solid #fcd019; border-radius:40px;
+  color:#000; background:#fcd019; padding:5px 12px;
+}
+#pcAdsPreferences a {display:inline-block;color:#fcd019;text-decoration:underline;font-size:14px;margin-top:8px;}
+.pc-ads-preferences {display:block;margin:8px auto 0;padding:4px 10px;border:0;background:transparent;color:#fcd019;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;}
+#pcAdsPreferences button:focus-visible,#pcAdsPreferences a:focus-visible,.pc-ads-preferences:focus-visible {outline:2px solid currentColor;outline-offset:3px;}
+@media(max-width:480px){#pcAdsPreferences.pc-ads-panel{inset:auto 12px max(12px,env(safe-area-inset-bottom)) 12px;width:auto;padding:14px 16px;}}

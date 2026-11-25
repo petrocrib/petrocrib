@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { reportMetaPurchase } from "@/lib/meta-purchase";
 import { db, uid } from "@/lib/db";
 import { sendOrderProcessingEmail } from "@/src/lib/order-emails";
 
@@ -143,6 +144,7 @@ export async function POST(req: Request) {
       const currency = String(payment?.currency || order?.currency || "");
       if (razorpayOrderId && paymentId && amount > 0) {
         await markPaid(razorpayOrderId, paymentId, amount, currency);
+        await reportMetaPurchase(null, paymentId);
       }
     } else if (type === "payment.failed") {
       const razorpayOrderId = String(payment?.order_id || "");

@@ -112,6 +112,7 @@
 
   window.PCAnalytics={
     sessionId:()=>sid,
+    advertisingConsent:()=>readAdsChoice()==='yes',
     track(eventType,data={}){send('/api/track/event',{...common(),eventType,...data});try{adsEvent(eventType,data)}catch{}},
     syncCart(items){send('/api/track/cart',{sessionId:sid,items:Array.isArray(items)?items:[]})},
     attribution:()=>({...attr})

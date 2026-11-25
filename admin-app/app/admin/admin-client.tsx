@@ -47,28 +47,46 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     if(!ctx) return;
     void ctx.resume().then(()=>{
       const now=ctx.currentTime;
-      for(const [frequency,delay] of [[880,0],[1320,0.13],[1760,0.27]]){
+      if(!soundEnabledRef.current) return;
+
+      const click=ctx.createOscillator();
+      const clickGain=ctx.createGain();
+      click.type="triangle";
+      click.frequency.setValueAtTime(470,now);
+      click.frequency.exponentialRampToValueAtTime(115,now+0.045);
+      clickGain.gain.setValueAtTime(0.18,now);
+      clickGain.gain.exponentialRampToValueAtTime(0.0001,now+0.06);
+      click.connect(clickGain).connect(ctx.destination);
+      click.start(now);
+      click.stop(now+0.065);
+
+      const strike=now+0.052;
+      for(const [frequency,volume,decay] of [[1480,0.115,0.65],[2173,0.064,0.34],[3217,0.043,0.19],[4771,0.024,0.095]]){
         const oscillator=ctx.createOscillator();
         const gain=ctx.createGain();
-        oscillator.type="sine";
         oscillator.frequency.value=frequency;
-        gain.gain.setValueAtTime(0.0001,now+delay);
-        gain.gain.exponentialRampToValueAtTime(0.12,now+delay+0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001,now+delay+0.28);
+        gain.gain.setValueAtTime(0.0001,strike);
+        gain.gain.exponentialRampToValueAtTime(volume,strike+0.003);
+        gain.gain.exponentialRampToValueAtTime(0.0001,strike+decay);
         oscillator.connect(gain).connect(ctx.destination);
-        oscillator.start(now+delay);
-        oscillator.stop(now+delay+0.3);
+        oscillator.start(strike);
+        oscillator.stop(strike+decay+0.005);
       }
     }).catch(()=>{});
   }
 
-  function enableOrderSound(){
+  async function toggleOrderSound(){
+    setOrderSoundNotice("");
+    if(soundEnabledRef.current){
+      soundEnabledRef.current=false;
+      setOrderSoundEnabled(false);
+      return;
+    }
     try{
       audioContextRef.current ??= new AudioContext();
-      void audioContextRef.current.resume();
+      await audioContextRef.current.resume();
       soundEnabledRef.current=true;
       setOrderSoundEnabled(true);
-      setOrderSoundNotice("Ka-ching enabled while this dashboard is open.");
       playOrderChime();
     }catch{
       setOrderSoundNotice("Audio is unavailable in this browser.");
@@ -168,9 +186,9 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
 
     <main className="main">
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
-        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={enableOrderSound}>{orderSoundEnabled?"🔔 Ka-ching on":"🔔 Enable ka-ching"}</button><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
+        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 
-        {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}\n        {tab==="dashboard"&&<><section className="grid metricGrid">
+        {tab==="dashboard"&&<><section className="grid metricGrid">
           <Metric label="Active users now" value={num(s.activeUsers)} sub="Seen in the last 3 min"/>
           <Metric label="Visitors today" value={num(s.visitorsToday)} sub={`${num(s.pageViewsToday)} page views`}/>
           <Metric label="Live carts" value={num(s.liveCarts)} sub={`${money(s.liveCartValue)} sitting in carts`}/>
@@ -216,6 +234,12 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
         </section>
       </div>}
       {error&&<div className="error adminGlobalError">{error}</div>}
+      {(tab==="dashboard"||tab==="orders")&&<div style={{marginBlock:"1rem"}}>
+        <button className="btn" type="button" aria-pressed={orderSoundEnabled} onClick={toggleOrderSound}>
+          Ka-ching sound {orderSoundEnabled?"on":"off"}
+        </button>
+        {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}
+      </div>}
     </main>
   </div>;
 }

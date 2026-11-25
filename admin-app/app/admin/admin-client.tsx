@@ -40,39 +40,13 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const [orderSoundNotice,setOrderSoundNotice]=useState("");
   const seenPaidOrders=useRef<Set<string>|null>(null);
   const soundEnabledRef=useRef(false);
-  const audioContextRef=useRef<AudioContext|null>(null);
+  const orderAudioRef=useRef<HTMLAudioElement|null>(null);
 
   function playOrderChime(){
-    const ctx=audioContextRef.current;
-    if(!ctx) return;
-    void ctx.resume().then(()=>{
-      const now=ctx.currentTime;
-      if(!soundEnabledRef.current) return;
-
-      const click=ctx.createOscillator();
-      const clickGain=ctx.createGain();
-      click.type="triangle";
-      click.frequency.setValueAtTime(470,now);
-      click.frequency.exponentialRampToValueAtTime(115,now+0.045);
-      clickGain.gain.setValueAtTime(0.18,now);
-      clickGain.gain.exponentialRampToValueAtTime(0.0001,now+0.06);
-      click.connect(clickGain).connect(ctx.destination);
-      click.start(now);
-      click.stop(now+0.065);
-
-      const strike=now+0.052;
-      for(const [frequency,volume,decay] of [[1480,0.115,0.65],[2173,0.064,0.34],[3217,0.043,0.19],[4771,0.024,0.095]]){
-        const oscillator=ctx.createOscillator();
-        const gain=ctx.createGain();
-        oscillator.frequency.value=frequency;
-        gain.gain.setValueAtTime(0.0001,strike);
-        gain.gain.exponentialRampToValueAtTime(volume,strike+0.003);
-        gain.gain.exponentialRampToValueAtTime(0.0001,strike+decay);
-        oscillator.connect(gain).connect(ctx.destination);
-        oscillator.start(strike);
-        oscillator.stop(strike+decay+0.005);
-      }
-    }).catch(()=>{});
+    const audio=orderAudioRef.current;
+    if(!audio) return Promise.reject(new Error("Order sound is unavailable."));
+    audio.currentTime=0;
+    return audio.play();
   }
 
   async function toggleOrderSound(){
@@ -80,21 +54,20 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     if(soundEnabledRef.current){
       soundEnabledRef.current=false;
       setOrderSoundEnabled(false);
+      orderAudioRef.current?.pause();
       return;
     }
+    soundEnabledRef.current=true;
+    setOrderSoundEnabled(true);
     try{
-      audioContextRef.current ??= new AudioContext();
-      await audioContextRef.current.resume();
-      soundEnabledRef.current=true;
-      setOrderSoundEnabled(true);
-      playOrderChime();
+      await playOrderChime();
     }catch{
-      setOrderSoundNotice("Audio is unavailable in this browser.");
+      if(!soundEnabledRef.current) return;
+      soundEnabledRef.current=false;
+      setOrderSoundEnabled(false);
+      setOrderSoundNotice("Could not play the cash register sound.");
     }
   }
-
-  useEffect(()=>()=>{void audioContextRef.current?.close();},[]);
-
 
   async function loadDashboard(){
     const [m,o]=await Promise.all([fetch("/api/admin/metrics",{cache:"no-store"}),fetch(`/api/admin/orders${q?`?q=${encodeURIComponent(q)}`:""}`,{cache:"no-store"})]);
@@ -105,7 +78,9 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     const paidIds=new Set<string>((oj.orders||[]).filter((order:Order)=>String(order.paymentStatus||"").toLowerCase()==="paid").map((order:Order)=>String(order.id)));
     if(seenPaidOrders.current!==null && soundEnabledRef.current){
       const newPaid=[...paidIds].filter(id=>!seenPaidOrders.current!.has(id));
-      if(newPaid.length) playOrderChime();
+      if(newPaid.length) void playOrderChime().catch(()=>{
+        if(soundEnabledRef.current) setOrderSoundNotice("Could not play the cash register sound.");
+      });
     }
     seenPaidOrders.current=paidIds;
     setMetrics(mj);setOrders(oj.orders||[]);setAuth("in");setLast(new Date());setError("");
@@ -185,6 +160,8 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     
 
     <main className="main">
+      {/* Vintage cash register by Tompalompa (CC0), excerpt hosted by Slap Alert. */}
+      <audio ref={orderAudioRef} preload="none" src="https://slapalert.com/assets/sounds/register.823bc1a7.mp3" />
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
         <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 

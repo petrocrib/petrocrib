@@ -14,3 +14,16 @@
 .pcContent :is(.loginCard,.productAdminCard,.catalogStats,.productEditor,.editorSection,.editorFooter,.orderEditor,.orderEditorBody,.orderEditorFooter,.orderEditorSummary,.editorBody,.variantRow,.imageEditCard,.richToolbar,.handleInput,.tagAdd,.optionTag,.imageDropEmpty,.calculatedPrice,.uploadStatus){background:#fcd019;color:#111;border-color:#111}.pcContent :is(.orderEditorHeader,.editorHeader,.marketingPreview){background:#111;color:#fcd019}.pcContent :is(.orderEditorHeader,.editorHeader,.marketingPreview) :is(h2,h3,p,small,.eyebrow,span){color:inherit}.pcContent :is(.editorClose,.richToolbar button,.imageEditActions button,.removeCircle){background:#111;color:#fcd019;border-color:#111}.pcContent :is(.productHandle,.productImageEmpty,.adminWord,.textDanger,.calculatedPrice span,.optionTag button,.handleInput span,.imageDropEmpty span){color:inherit}.pcContent .productAdminImage{background:#111;color:#fcd019}.pcContent .error{color:inherit;border:1px solid currentColor;border-radius:6px;padding:8px;font-weight:750}.pcContent .card .error{color:#fcd019;background:#111}.pcContent .adminGlobalError{background:#111;color:#fcd019}.pcContent :focus-visible,.pcSidebar a:focus-visible{outline:2px solid currentColor;outline-offset:3px}.pcContent .loginCard .btn{background:#111;color:#fcd019}.pcContent .loginCard h1{font-size:25px}.pcContent .loginCard p{display:none}
 @media(max-width:1050px){.pcWorkspace{grid-template-columns:190px minmax(0,1fr)}.pcSidebar{padding:20px 12px}.pcContent .main{padding:20px}.pcContent .sectionGrid{grid-template-columns:1fr}}
 @media(max-width:700px){.pcWorkspace{display:block}.pcSidebar{height:auto;z-index:30;padding:10px 12px;gap:8px}.pcBrand{padding:0;flex-direction:row;align-items:center}.pcBrand img{width:105px;height:30px}.pcSidebar nav{flex-direction:row;overflow:auto}.pcSidebar nav a{flex:none;min-height:38px;padding:7px 9px;gap:6px;font-size:12px}.pcSidebar nav svg{width:17px;height:17px;flex-basis:17px}.pcContent .main{padding:14px}.pcContent h1{font-size:25px}.pcContent .card{padding:14px}.pcContent .metricGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pcContent .toolbar .search{flex-basis:100%}.pcContent .sectionGrid{grid-template-columns:1fr}}
+
+/* Unified brand typography, including catalog, editors and campaign previews. */
+.pcWorkspace{font-family:"Bayon",Arial,sans-serif;font-size:16px;letter-spacing:.025em}
+.pcWorkspace :is(h1,h2,h3,h4,h5,h6,.heroRow h1,.catalogHero h1,.sectionTitle h2,.loginCard h1,.marketingPreview h3){font-family:"Bayon",Arial,sans-serif;font-weight:700;letter-spacing:.025em}
+.pcWorkspace .pcSidebar nav a{font-size:17px}
+.pcWorkspace .pcContent h1{font-size:34px}
+.pcWorkspace .pcContent h2{font-size:21px}
+.pcWorkspace .pcContent h3{font-size:18px}
+.pcWorkspace .pcContent :is(.ordersTable td,.pcItemHead,.orderAddress,.btn,input,select,textarea){font-size:16px}
+.pcWorkspace .pcContent :is(.ordersTable th,.small,.pcVariant,.pcTracking,.pcPaymentRef,.metricLabel,.metricSub){font-size:14px}
+.pcWorkspace .pcContent :is(.status,.pill,.pcQty,.manageOrderBtn,.copyAddressBtn,.pcSource){font-size:13px}
+.pcWorkspace .pcContent :is(.pcRef,.pcAmount){font-size:16px}
+.pcWorkspace :is(button,input,select,textarea){font-family:inherit}

@@ -5,7 +5,7 @@ import ProductManager, { type AdminProduct } from "./product-manager";
 
 type Metrics = any;
 type Order = any;
-type Tab = "dashboard" | "products";
+type Tab = "dashboard" | "products" | "orders";
 
 const FULFILMENT_STATUSES = ["PAYMENT_PENDING", "PAID", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"];
 
@@ -17,7 +17,7 @@ function Brand({ dark=false, admin=true }:{dark?:boolean;admin?:boolean}){
   return <div className={`brand logoBrand ${dark?"dark":""}`}><img className="adminLogo" src="https://www.petrocrib.in/assets/img/logo.png" alt="Petrocrib"/>{admin&&<span className="adminWord">ADMIN</span>}</div>;
 }
 
-export default function AdminClient(){
+export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const [metrics,setMetrics]=useState<Metrics|null>(null);
   const [orders,setOrders]=useState<Order[]>([]);
   const [products,setProducts]=useState<AdminProduct[]>([]);
@@ -26,7 +26,7 @@ export default function AdminClient(){
   const [error,setError]=useState("");
   const [q,setQ]=useState("");
   const [last,setLast]=useState<Date|null>(null);
-  const [tab,setTab]=useState<Tab>("dashboard");
+  const [tab,setTab]=useState<Tab>(initialTab);
   const [editingOrder,setEditingOrder]=useState<Order|null>(null);
   const [editingStatus,setEditingStatus]=useState("PAID");
   const [editingCourier,setEditingCourier]=useState("");
@@ -113,17 +113,13 @@ export default function AdminClient(){
 
   const s=metrics?.summary||{};
   return <div className="adminShell">
-    <header className="topbar">
-      <Brand/>
-      <nav className="adminNav" aria-label="Admin sections"><button className={tab==="dashboard"?"active":""} onClick={()=>setTab("dashboard")}>Dashboard</button><button className={tab==="products"?"active":""} onClick={()=>setTab("products")}>Products <span>{products.filter(p=>p.isActive).length}</span></button><a href="/admin/customers">Customers</a><a href="/admin/returning">Returning</a><a href="/admin/marketing">Marketing</a><a href="/admin/archived-orders">Archived</a></nav>
-      <div className="topMeta"><span className="refreshDot"/>Live · {last?last.toLocaleTimeString():"—"}</div>
-    </header>
+    
 
     <main className="main">
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
-        <div className="heroRow"><div><div className="eyebrow">Store pulse</div><h1>Business dashboard</h1><p>Traffic → cart → payment → fulfilment.</p></div><button className="btn" onClick={loadDashboard}>Refresh now</button></div>
+        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><button className="btn" onClick={loadDashboard}>Refresh now</button></div>
 
-        <section className="grid metricGrid">
+        {tab==="dashboard"&&<><section className="grid metricGrid">
           <Metric label="Active users now" value={num(s.activeUsers)} sub="Seen in the last 3 min"/>
           <Metric label="Visitors today" value={num(s.visitorsToday)} sub={`${num(s.pageViewsToday)} page views`}/>
           <Metric label="Live carts" value={num(s.liveCarts)} sub={`${money(s.liveCartValue)} sitting in carts`}/>
@@ -147,7 +143,7 @@ export default function AdminClient(){
           <div className="card"><div className="sectionTitle"><h2>Carts happening now</h2><span className="pill">Last 10 min</span></div><div className="cartRows">{(metrics?.liveCarts||[]).map((x:any)=><div className="row" key={x.sessionId}><div><b>{x.itemCount} item{x.itemCount===1?"":"s"}</b><div className="small">{Array.isArray(x.items)?x.items.slice(0,2).map((i:any)=>i.title).join(" · "):"Live cart"}</div></div><b>{money(x.cartValue)}</b><span className="small">live</span></div>)}{!(metrics?.liveCarts||[]).length&&<div className="empty">No live carts right now.</div>}<div className="small" style={{marginTop:12}}>Abandoned (7 days): <b>{num(metrics?.abandoned?.count)}</b> carts · <b>{money(metrics?.abandoned?.value)}</b></div></div></div>
         </section>
 
-        <section className="card ordersCard"><div className="sectionTitle"><h2>Orders</h2><span className="pill">Latest 300</span></div><div className="toolbar"><input className="search" placeholder="Search reference, customer, phone or payment ID" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')loadDashboard()}}/><button className="btn" onClick={loadDashboard}>Search</button></div><div className="tableWrap"><table className="ordersTable"><thead><tr><th>Order</th><th>Customer</th><th>Delivery address</th><th>Items</th><th>Source</th><th>Payment</th><th>Fulfilment</th><th>Total</th><th>Created</th></tr></thead><tbody>{orders.map((o:any)=>{const address=[o.addressLine1,o.addressLine2,[o.city,o.state].filter(Boolean).join(", "),o.postalCode,o.country].filter(Boolean);const copyText=[o.customerName,o.phone,o.email,...address].filter(Boolean).join("\n");return <tr key={o.id}><td><b>{o.reference}</b><div className="small">{o.razorpayPaymentId||o.razorpayOrderId||"—"}</div><button className="manageOrderBtn" type="button" onClick={()=>openFulfilmentEditor(o)}>Manage order</button><button className="manageOrderBtn archiveOrderBtn" type="button" onClick={()=>archiveOrder(o)}>Archive</button></td><td><b>{o.customerName}</b><div className="small">{o.phone}</div>{o.email&&<div className="small orderEmail">{o.email}</div>}</td><td><div className="orderAddress">{address.length?address.map((line:string,i:number)=><div key={i}>{line}</div>):<span className="small">No address recorded</span>}</div>{address.length>0&&<button className="copyAddressBtn" type="button" onClick={()=>navigator.clipboard?.writeText(copyText)}>Copy address</button>}</td><td>{(o.items||[]).map((i:any)=><div className="orderItem" key={i.id}>{i.title} × {i.quantity}<br/><span className="small">{i.variant}</span></div>)}</td><td><span className="status">{sourceLabel(o.source)}</span></td><td><span className={`status ${o.paymentStatus==='paid'?'PAID':''}`}>{o.paymentStatus}</span></td><td><span className={`status ${o.fulfillmentStatus}`}>{o.fulfillmentStatus}</span>{o.trackingNumber&&<div className="small">{o.courier} · {o.trackingNumber}</div>}</td><td><b>{money(o.total)}</b></td><td>{new Date(o.createdAt).toLocaleString()}</td></tr>})}</tbody></table>{!orders.length&&<div className="empty">No orders yet.</div>}</div></section>
+        </>}{tab==="orders"&&<section className="card ordersCard"><div className="sectionTitle"><h2>Orders</h2><span className="pill">Latest 300</span></div><div className="toolbar"><input className="search" placeholder="Search reference, customer, phone or payment ID" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')loadDashboard()}}/><button className="btn" onClick={loadDashboard}>Search</button></div><div className="tableWrap"><table className="ordersTable"><thead><tr><th>Order</th><th>Customer</th><th>Delivery address</th><th>Items</th><th>Source</th><th>Payment</th><th>Fulfilment</th><th>Total</th><th>Created</th></tr></thead><tbody>{orders.map((o:any)=>{const address=[o.addressLine1,o.addressLine2,[o.city,o.state].filter(Boolean).join(", "),o.postalCode,o.country].filter(Boolean);const copyText=[o.customerName,o.phone,o.email,...address].filter(Boolean).join("\n");return <tr key={o.id}><td><b>{o.reference}</b><div className="small">{o.razorpayPaymentId||o.razorpayOrderId||"—"}</div><button className="manageOrderBtn" type="button" onClick={()=>openFulfilmentEditor(o)}>Manage order</button><button className="manageOrderBtn archiveOrderBtn" type="button" onClick={()=>archiveOrder(o)}>Archive</button></td><td><b>{o.customerName}</b><div className="small">{o.phone}</div>{o.email&&<div className="small orderEmail">{o.email}</div>}</td><td><div className="orderAddress">{address.length?address.map((line:string,i:number)=><div key={i}>{line}</div>):<span className="small">No address recorded</span>}</div>{address.length>0&&<button className="copyAddressBtn" type="button" onClick={()=>navigator.clipboard?.writeText(copyText)}>Copy address</button>}</td><td>{(o.items||[]).map((i:any)=><div className="orderItem" key={i.id}>{i.title} × {i.quantity}<br/><span className="small">{i.variant}</span></div>)}</td><td><span className="status">{sourceLabel(o.source)}</span></td><td><span className={`status ${o.paymentStatus==='paid'?'PAID':''}`}>{o.paymentStatus}</span></td><td><span className={`status ${o.fulfillmentStatus}`}>{o.fulfillmentStatus}</span>{o.trackingNumber&&<div className="small">{o.courier} · {o.trackingNumber}</div>}</td><td><b>{money(o.total)}</b></td><td>{new Date(o.createdAt).toLocaleString()}</td></tr>})}</tbody></table>{!orders.length&&<div className="empty">No orders yet.</div>}</div></section>}
       </>}
       {editingOrder&&<div className="orderModalBackdrop">
         <section className="orderEditor" role="dialog" aria-modal="true" aria-labelledby="orderEditorTitle">

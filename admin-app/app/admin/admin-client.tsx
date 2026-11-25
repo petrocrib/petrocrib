@@ -160,8 +160,8 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     
 
     <main className="main">
-      {/* Vintage cash register by Tompalompa (CC0), excerpt hosted by Slap Alert. */}
-      <audio ref={orderAudioRef} preload="none" src="https://slapalert.com/assets/sounds/register.823bc1a7.mp3" />
+      {/* Vintage cash register by Tompalompa (CC0), excerpt from Slap Alert. */}
+      <audio ref={orderAudioRef} preload="auto" src="/sounds/cash-register.mp3" />
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
         <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 

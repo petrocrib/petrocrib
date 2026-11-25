@@ -92,10 +92,10 @@
     panel.id='pcAdsPreferences';
     panel.setAttribute('aria-label','Advertising privacy preferences');
     panel.className='pc-ads-panel';
-    const title=document.createElement('h2');title.textContent='YOUR PRIVACY. YOUR CALL.';panel.appendChild(title);
-    const msg=document.createElement('p');msg.textContent='Optional cookies help us measure ads and purchases. Your choice won’t affect shopping.';panel.appendChild(msg);
+    const title=document.createElement('h2');title.textContent='GOOD VIBES. YOUR CALL.';panel.appendChild(title);
+    const msg=document.createElement('p');msg.textContent='Optional cookies help us measure purchases and make our ads less random, more your vibe. Totally your choice.';panel.appendChild(msg);
     const actions=document.createElement('div');actions.className='pc-ads-actions';
-    for(const [label,value] of [['Accept','yes'],['Decline','no']]){
+    for(const [label,value] of [["I'm in",'yes'],['No thanks','no']]){
       const b=document.createElement('button');b.type='button';b.textContent=label;
       b.onclick=()=>{const was=adsChoice;adsChoice=value;saveAdsChoice(value);panel.remove();if(value==='yes'){try{pixelInit()}catch{}}else if(was==='yes'&&pixelStarted){try{window.fbq('consent','revoke')}catch{};location.reload()}};
       actions.appendChild(b);

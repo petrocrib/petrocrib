@@ -207,3 +207,11 @@ export async function sendOrderShippedEmail(order: ShippedEmailDetails): Promise
 
   await deliverEmail(order.customerEmail || "", subject, emailShell(subject, content, BLACK), text);
 }
+
+export async function sendShippingCorrectionEmail(order: ShippedEmailDetails, key?: string): Promise<void> {
+  const reference=order.reference||order.id;
+  const subject="PETROCRIB | Updated delivery details "+reference;
+  const courier=order.courier||"Not provided", tracking=order.trackingNumber||"Not provided";
+  const content='<h1>Updated delivery details</h1><p>Hey '+escapeHtml(order.customerName||"there")+', we have corrected the shipping information for your order. Please use these latest details.</p>'+orderReferenceHtml(reference)+'<p><strong>Courier:</strong> '+escapeHtml(courier)+'</p><p><strong>Tracking / AWB:</strong> '+escapeHtml(tracking)+'</p>';
+  await deliverEmail(order.customerEmail||"",subject,emailShell(subject,content),"Updated delivery details for "+reference+"\nCourier: "+courier+"\nTracking / AWB: "+tracking,key);
+}

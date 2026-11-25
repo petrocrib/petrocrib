@@ -7,8 +7,8 @@
   const ATTR_KEY='pc_attribution';
   const get=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}};
   const set=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
-  let sid=localStorage.getItem(SID_KEY);
-  if(!sid){sid='pcv_'+(crypto.randomUUID?crypto.randomUUID().replaceAll('-',''):(Date.now()+Math.random().toString(16).slice(2)));localStorage.setItem(SID_KEY,sid)}
+  let sid;try{sid=localStorage.getItem(SID_KEY)}catch{}
+  if(!sid){sid='pcv_'+(crypto.randomUUID?crypto.randomUUID().replaceAll('-',''):(Date.now()+Math.random().toString(16).slice(2)));try{localStorage.setItem(SID_KEY,sid)}catch{}}
 
   function externalReferrer(){
     if(!document.referrer)return '';
@@ -45,7 +45,19 @@
   // Advertising is opt-in, independent of order and email marketing consent.
   const ADS_KEY='pc_ads_consent_v1';
   const PIXEL='241903595474647';
-  let adsChoice=get(ADS_KEY);
+  function readAdsChoice(){
+    const stored=get(ADS_KEY);
+    if(stored==='yes'||stored==='no')return stored;
+    try{const match=document.cookie.match(/(?:^|;\s*)pc_ads_consent_v1=(yes|no)(?:;|$)/);if(match)return match[1]}catch{}
+    try{const value=sessionStorage.getItem(ADS_KEY);if(value==='yes'||value==='no')return value}catch{}
+    return null;
+  }
+  function saveAdsChoice(value){
+    set(ADS_KEY,value);
+    try{sessionStorage.setItem(ADS_KEY,value)}catch{}
+    try{document.cookie=ADS_KEY+'='+value+'; Path=/; Max-Age=15552000; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'')}catch{}
+  }
+  let adsChoice=readAdsChoice();
   let pixelStarted=false;
   function pixelInit(){
     if(adsChoice!=='yes'||pixelStarted)return;
@@ -79,19 +91,21 @@
     const panel=document.createElement('section');
     panel.id='pcAdsPreferences';
     panel.setAttribute('aria-label','Advertising privacy preferences');
-    panel.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;max-width:520px;z-index:10000;background:#171717;color:#fff;padding:16px;border:1px solid #fcd019;border-radius:8px;font:16px/1.5 system-ui';
-    const msg=document.createElement('p');msg.textContent='Optional advertising cookies help us measure Meta ads and purchases. You can decline without affecting your order.';
-    panel.appendChild(msg);
-    const link=document.createElement('a');link.href='policies.html#privacy';link.textContent='Privacy policy';link.style.color='#fcd019';panel.appendChild(link);
-    for(const [label,value] of [['Allow advertising','yes'],['Decline','no']]){
-      const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='margin:4px;padding:8px 12px;background:#fcd019;color:#111;border:0;border-radius:4px;cursor:pointer';
-      b.onclick=()=>{const was=adsChoice;adsChoice=value;set(ADS_KEY,value);panel.remove();if(value==='yes'){try{pixelInit()}catch{}}else if(was==='yes'&&pixelStarted){try{window.fbq('consent','revoke')}catch{};location.reload()}};
-      panel.appendChild(b);
+    panel.className='pc-ads-panel';
+    const title=document.createElement('h2');title.textContent='YOUR PRIVACY. YOUR CALL.';panel.appendChild(title);
+    const msg=document.createElement('p');msg.textContent='Optional cookies help us measure ads and purchases. Your choice won’t affect shopping.';panel.appendChild(msg);
+    const actions=document.createElement('div');actions.className='pc-ads-actions';
+    for(const [label,value] of [['Accept','yes'],['Decline','no']]){
+      const b=document.createElement('button');b.type='button';b.textContent=label;
+      b.onclick=()=>{const was=adsChoice;adsChoice=value;saveAdsChoice(value);panel.remove();if(value==='yes'){try{pixelInit()}catch{}}else if(was==='yes'&&pixelStarted){try{window.fbq('consent','revoke')}catch{};location.reload()}};
+      actions.appendChild(b);
     }
+    panel.appendChild(actions);
+    const link=document.createElement('a');link.href='policies.html#privacy';link.textContent='Privacy policy';panel.appendChild(link);
     document.body.appendChild(panel);
   }
-  const prefs=document.createElement('button');prefs.type='button';prefs.textContent='Advertising privacy choices';
-  prefs.style.cssText='display:block;margin:12px auto;padding:8px;color:#111;background:#fcd019;border:0;border-radius:4px;cursor:pointer';
+  const prefs=document.createElement('button');prefs.type='button';prefs.textContent='Privacy choices';
+  prefs.className='pc-ads-preferences';
   prefs.onclick=showAdsChoice;
   (document.querySelector('footer')||document.body).appendChild(prefs);
   if(adsChoice==='yes'){try{pixelInit()}catch{}}else if(adsChoice!=='no')showAdsChoice();

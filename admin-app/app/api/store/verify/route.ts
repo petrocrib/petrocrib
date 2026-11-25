@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { reportMetaPurchase } from "@/lib/meta-purchase";
 import { db, uid } from "@/lib/db";
 import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
 import { sendOrderProcessingEmail } from "@/src/lib/order-emails";
@@ -134,7 +135,8 @@ export async function POST(req: Request) {
       await sendProcessingConfirmation({ ...stored, reference });
     }
 
-    return json(req, { valid: true, reference });
+    await reportMetaPurchase(String(stored.id), paymentId);
+    return json(req, { valid: true, reference, amount: Number(stored.total) });
   } catch (error) {
     console.error("verify payment", error instanceof Error ? error.message : "unknown error");
     return json(req, { valid: false }, { status: 500 });

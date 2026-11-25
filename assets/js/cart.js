@@ -268,6 +268,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: window.PCAnalytics ? PCAnalytics.sessionId() : null,
+          advertisingConsent: window.PCAnalytics?.advertisingConsent?.() === true,
           items: cart.map((i) => ({ title: i.title, variant: i.variant, price: i.price, qty: i.qty })),
           customer: orderCustomer,
         }),
@@ -292,7 +293,7 @@
           try {
             const v = await fetch(WURL + "/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) });
             verified = await v.json();
-            ok = !!verified.valid;
+            ok = v.ok && verified.valid === true;
           } catch {}
 
           if (ok) {
@@ -301,7 +302,7 @@
             updateCount();
             syncCart();
           }
-          if (window.PCAnalytics) PCAnalytics.track(ok ? "checkout_success" : "checkout_verification_pending", { value: data.amount / 100, metadata: { reference: verified.reference || data.reference || "" } });
+          if (window.PCAnalytics) PCAnalytics.track(ok ? "checkout_success" : "checkout_verification_pending", { value: ok && Number.isFinite(verified.amount) ? verified.amount : data.amount / 100, metadata: { reference: verified.reference || data.reference || "", ...(ok ? { paymentEventId: resp.razorpay_payment_id } : {}) } });
           showPaymentResult(ok, resp, verified, data);
 
           if (ok) {

@@ -98,6 +98,10 @@ export async function POST(req: Request) {
         ${source.firstUtmSource || null},${source.firstUtmMedium || null},${source.firstUtmCampaign || null},${source.firstUtmContent || null},${source.firstUtmTerm || null}
       )
     `;
+    if (body.advertisingConsent === true && process.env.META_CAPI_ENABLED === 'true') {
+      try { await sql`INSERT INTO "MetaPurchaseConsent" ("orderId","consentedAt") VALUES (${orderId},NOW()) ON CONFLICT DO NOTHING`; }
+      catch { console.warn('Meta consent unavailable'); }
+    }
     for (const item of items) {
       await sql`INSERT INTO "OrderItem" ("id","orderId","productId","title","variant","color","size","unitPrice","quantity","image") VALUES (${uid("itm")},${orderId},${item.productId},${item.title},${item.variant},${item.color || null},${item.size || null},${item.unitPrice},${item.quantity},${item.image || null})`;
     }

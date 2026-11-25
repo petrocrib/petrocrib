@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     const phone = String(customer.phone || "").trim().slice(0,80);
     const phoneNormalized = normalizePhone(phone);
     const email = String(customer.email || "").trim().slice(0,240) || null;
+    const marketingConsent = customer.marketingConsent === true;
     const address = String(customer.address || customer.addressLine1 || "").trim().slice(0,700);
     const address2 = String(customer.addressLine2 || "").trim().slice(0,300) || null;
     const pincode = String(customer.pincode || customer.postalCode || address.match(/PIN:\s*(\d{6})/i)?.[1] || "").trim().slice(0,20);
@@ -71,12 +72,17 @@ export async function POST(req: Request) {
 
     const customerId = uid("cus");
     const customerRows = await sql`
-      INSERT INTO "Customer" ("id","name","phone","phoneNormalized","email","city","state","country","firstOrderAt","lastOrderAt")
-      VALUES (${customerId},${name},${phone},${phoneNormalized},${email},${city},${state},${country},NOW(),NOW())
+      INSERT INTO "Customer" ("id","name","phone","phoneNormalized","email","city","state","country","firstOrderAt","lastOrderAt","marketingConsent","marketingConsentAt","marketingConsentSource","marketingUnsubscribeToken")
+      VALUES (${customerId},${name},${phone},${phoneNormalized},${email},${city},${state},${country},NOW(),NOW(),${marketingConsent},${marketingConsent ? new Date() : null},${marketingConsent ? "checkout" : null},${crypto.randomUUID()})
       ON CONFLICT ("phoneNormalized") DO UPDATE SET
         "name"=EXCLUDED."name", "phone"=EXCLUDED."phone", "email"=COALESCE(EXCLUDED."email","Customer"."email"),
         "city"=COALESCE(EXCLUDED."city","Customer"."city"), "state"=COALESCE(EXCLUDED."state","Customer"."state"),
-        "country"=COALESCE(EXCLUDED."country","Customer"."country"), "lastOrderAt"=NOW(), "updatedAt"=NOW()
+        "country"=COALESCE(EXCLUDED."country","Customer"."country"), "lastOrderAt"=NOW(),
+        "marketingConsent"=CASE WHEN EXCLUDED."marketingConsent" THEN true ELSE "Customer"."marketingConsent" END,
+        "marketingConsentAt"=CASE WHEN EXCLUDED."marketingConsent" THEN NOW() ELSE "Customer"."marketingConsentAt" END,
+        "marketingConsentSource"=CASE WHEN EXCLUDED."marketingConsent" THEN 'checkout' ELSE "Customer"."marketingConsentSource" END,
+        "marketingUnsubscribedAt"=CASE WHEN EXCLUDED."marketingConsent" THEN NULL ELSE "Customer"."marketingUnsubscribedAt" END,
+        "marketingUnsubscribeToken"=COALESCE("Customer"."marketingUnsubscribeToken",EXCLUDED."marketingUnsubscribeToken"), "updatedAt"=NOW()
       RETURNING "id"
     `;
     const actualCustomerId = String((customerRows[0] as any).id);

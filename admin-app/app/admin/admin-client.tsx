@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {exportCsv} from "./export-csv";
 import ProductManager, { type AdminProduct } from "./product-manager";
 
@@ -36,12 +36,53 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const [editingTracking,setEditingTracking]=useState("");
   const [savingOrder,setSavingOrder]=useState(false);
   const [editError,setEditError]=useState("");
+  const [orderSoundEnabled,setOrderSoundEnabled]=useState(false);
+  const [orderSoundNotice,setOrderSoundNotice]=useState("");
+  const seenPaidOrders=useRef<Set<string>|null>(null);
+  const soundEnabledRef=useRef(false);
+  const orderAudioRef=useRef<HTMLAudioElement|null>(null);
+
+  function playOrderChime(){
+    const audio=orderAudioRef.current;
+    if(!audio) return Promise.reject(new Error("Order sound is unavailable."));
+    audio.currentTime=0;
+    return audio.play();
+  }
+
+  async function toggleOrderSound(){
+    setOrderSoundNotice("");
+    if(soundEnabledRef.current){
+      soundEnabledRef.current=false;
+      setOrderSoundEnabled(false);
+      orderAudioRef.current?.pause();
+      return;
+    }
+    soundEnabledRef.current=true;
+    setOrderSoundEnabled(true);
+    try{
+      await playOrderChime();
+    }catch{
+      if(!soundEnabledRef.current) return;
+      soundEnabledRef.current=false;
+      setOrderSoundEnabled(false);
+      setOrderSoundNotice("Could not play the cash register sound.");
+    }
+  }
 
   async function loadDashboard(){
     const [m,o]=await Promise.all([fetch("/api/admin/metrics",{cache:"no-store"}),fetch(`/api/admin/orders${q?`?q=${encodeURIComponent(q)}`:""}`,{cache:"no-store"})]);
     if(m.status===401||o.status===401){setAuth("out");return false;}
     if(!m.ok||!o.ok){setError("Could not load dashboard data.");return false;}
     const [mj,oj]=await Promise.all([m.json(),o.json()]);
+    // Establish a baseline on first load: historical paid orders never trigger a chime.
+    const paidIds=new Set<string>((oj.orders||[]).filter((order:Order)=>String(order.paymentStatus||"").toLowerCase()==="paid").map((order:Order)=>String(order.id)));
+    if(seenPaidOrders.current!==null && soundEnabledRef.current){
+      const newPaid=[...paidIds].filter(id=>!seenPaidOrders.current!.has(id));
+      if(newPaid.length) void playOrderChime().catch(()=>{
+        if(soundEnabledRef.current) setOrderSoundNotice("Could not play the cash register sound.");
+      });
+    }
+    seenPaidOrders.current=paidIds;
     setMetrics(mj);setOrders(oj.orders||[]);setAuth("in");setLast(new Date());setError("");
     return true;
   }
@@ -119,8 +160,10 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     
 
     <main className="main">
+      {/* Vintage cash register by Tompalompa (CC0), excerpt from Slap Alert. */}
+      <audio ref={orderAudioRef} preload="auto" src="/sounds/cash-register.mp3" />
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
-        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><button className="btn" onClick={loadDashboard}>Refresh now</button></div>
+        <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 
         {tab==="dashboard"&&<><section className="grid metricGrid">
           <Metric label="Active users now" value={num(s.activeUsers)} sub="Seen in the last 3 min"/>
@@ -168,6 +211,12 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
         </section>
       </div>}
       {error&&<div className="error adminGlobalError">{error}</div>}
+      {(tab==="dashboard"||tab==="orders")&&<div style={{marginBlock:"1rem"}}>
+        <button className="btn" type="button" aria-pressed={orderSoundEnabled} onClick={toggleOrderSound}>
+          Ka-ching sound {orderSoundEnabled?"on":"off"}
+        </button>
+        {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}
+      </div>}
     </main>
   </div>;
 }

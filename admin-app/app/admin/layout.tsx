@@ -6,6 +6,7 @@ import "./workspace.css";
 const links=[
 ["/admin","Overview","M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"],
 ["/admin/orders","Orders","M5 4h14v17H5z M9 4V2h6v2 M8 9h8 M8 13h8 M8 17h5"],
+["/admin/pending-carts","Pending carts","M2 3h3l3 12h11l3-8H6 M9 20h.01 M18 20h.01"],
 ["/admin/products","Products","M3 7l9-5 9 5v10l-9 5-9-5z M3 7l9 5 9-5 M12 12v10"],
 ["/admin/customers","Customers","M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-4 M16 3a4 4 0 0 1 0 8"],
 ["/admin/returning","Growth","M3 3v18h18 M6 16l5-5 4 4 6-8 M16 7h5v5"],

@@ -32,11 +32,11 @@
 .pcContent .tableWrap{border-color:#444}
 .pcContent .ordersTable{background:#fff;color:#111}
 .pcContent .ordersTable th{background:#111;color:#fff}
-.pcContent .ordersTable td{border-color:#ddd}
+.pcContent .ordersTable td{color:#111;border-color:#ddd}
 .pcContent .ordersTable tbody tr:nth-child(even){background:#f5f5f5}
 .pcContent .ordersTable tbody tr:hover{background:#ebebeb}
-.pcContent .ordersTable :is(.small,.orderAddress,.orderItem){color:#111}
+.pcContent .ordersTable td :is(.small,.orderAddress,.orderItem){color:#111}
 .pcContent .ordersTable .status{background:transparent;color:#111;border-color:#111}
 .pcContent .ordersTable :is(.status.PAID,.status.DELIVERED,.status.SHIPPED,.manageOrderBtn,.copyAddressBtn,.pcQty,.btn){background:#111;color:#fff;border-color:#111}
-.pcContent .ordersTable .archiveOrderBtn{background:transparent;color:#111;border-color:#111}
+.pcContent .ordersTable .manageOrderBtn.archiveOrderBtn{background:transparent;color:#111;border-color:#111}
 .pcContent .ordersTable .pcItem{background:#fff;color:#111;border-color:#ccc}

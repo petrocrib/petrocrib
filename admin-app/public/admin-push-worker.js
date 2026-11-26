@@ -8,6 +8,7 @@ self.addEventListener("push", event => {
     {
       body: orderId ? "Someone just made your day. Time to get packing!" : "You're connected. Now we just need customers.",
       icon: "https://www.petrocrib.in/assets/img/favicon.png",
+      ...(orderId ? { image: "/order-notification-banner.svg", actions: [{ action: "view-order", title: "View orders" }] } : {}),
       tag: orderId ? `paid-order-${orderId}` : "petrocrib-push-test",
     }
   ));

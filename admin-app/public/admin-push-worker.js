@@ -1,9 +1,9 @@
 self.addEventListener("push", event => {
   const orderId = event.data?.json().orderId;
   event.waitUntil(self.registration.showNotification(
-    orderId ? "New paid Petrocrib order" : "Petrocrib notification test",
+    orderId ? "KA-CHING! 💸 New order received!" : "Ka-ching check! 🔔",
     {
-      body: orderId ? "Open Petrocrib Admin to view your orders." : "Background order alerts are reaching this device.",
+      body: orderId ? "Someone just made your day. Time to get packing!" : "You're connected. Now we just need customers.",
       tag: orderId ? `paid-order-${orderId}` : "petrocrib-push-test",
     }
   ));

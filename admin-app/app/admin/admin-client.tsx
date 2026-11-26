@@ -39,6 +39,8 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const [editError,setEditError]=useState("");
   const [orderSoundEnabled,setOrderSoundEnabled]=useState(false);
   const [orderSoundNotice,setOrderSoundNotice]=useState("");
+  const [settingsOpen,setSettingsOpen]=useState(false);
+  useEffect(()=>{const sync=()=>setSettingsOpen(window.location.hash==="#settings");sync();window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[]);
   const seenPaidOrders=useRef<Set<string>|null>(null);
   const soundEnabledRef=useRef(false);
   const orderAudioRef=useRef<HTMLAudioElement|null>(null);
@@ -212,13 +214,16 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
         </section>
       </div>}
       {error&&<div className="error adminGlobalError">{error}</div>}
-      {(tab==="dashboard"||tab==="orders")&&<div style={{marginBlock:"1rem"}}>
-        <button className="btn" type="button" aria-pressed={orderSoundEnabled} onClick={toggleOrderSound}>
-          Ka-ching sound {orderSoundEnabled?"on":"off"}
-        </button>
+      {settingsOpen&&<section className="card" aria-labelledby="notificationSettingsTitle" style={{position:"fixed",inset:"auto 12px 16px auto",width:"min(440px, calc(100vw - 24px))",maxHeight:"80vh",overflow:"auto",zIndex:1000,padding:24,boxSizing:"border-box",background:"#141414",color:"#facc15",border:"1px solid #facc15",borderRadius:16,boxShadow:"0 12px 48px #0008"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}><h2 id="notificationSettingsTitle" style={{margin:0}}>Settings</h2><button className="btn" type="button" aria-label="Close settings" onClick={()=>{window.history.replaceState(null,"",window.location.pathname+window.location.search);setSettingsOpen(false);}}>Close</button></div>
+        <p style={{fontSize:13,marginBlock:"12px 20px"}}>ORDER NOTIFICATIONS</p>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,paddingBlock:16,borderTop:"1px solid #665b24"}}>
+          <div><strong>Ka-ching sound</strong><p style={{fontSize:13,margin:"6px 0 0"}}>Play sound for new paid orders.</p></div>
+          <button className="btn" type="button" role="switch" aria-label="Ka-ching sound" aria-checked={orderSoundEnabled} onClick={toggleOrderSound} style={{minWidth:64,background:orderSoundEnabled?"#facc15":"#141414",color:orderSoundEnabled?"#141414":"#facc15",border:"1px solid #facc15"}}>{orderSoundEnabled?"ON":"OFF"}</button>
+        </div>
         {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}
         <AdminPushControls />
-      </div>}
+      </section>}
     </main>
   </div>;
 }

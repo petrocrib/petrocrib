@@ -44,12 +44,50 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const seenPaidOrders=useRef<Set<string>|null>(null);
   const soundEnabledRef=useRef(false);
   const orderAudioRef=useRef<HTMLAudioElement|null>(null);
+  const orderSoundContext=useRef<AudioContext|null>(null);
 
   function playOrderChime(){
     const audio=orderAudioRef.current;
     if(!audio) return Promise.reject(new Error("Order sound is unavailable."));
     audio.currentTime=0;
-    return audio.play();
+    audio.volume=0.78;
+    const playback=audio.play();
+    try {
+      const ctx=orderSoundContext.current ?? (orderSoundContext.current=new AudioContext());
+      void ctx.resume().then(()=>{
+        if(!soundEnabledRef.current) return;
+        const t=ctx.currentTime;
+        const bus=ctx.createGain();
+        bus.gain.value=0.55;
+        const limiter=ctx.createDynamicsCompressor();
+        limiter.threshold.value=-12;
+        limiter.ratio.value=8;
+        bus.connect(limiter).connect(ctx.destination);
+        const hit=(freq:number,end:number,start:number,duration:number,level:number,type:OscillatorType)=>{
+          const osc=ctx.createOscillator(), gain=ctx.createGain();
+          osc.type=type;
+          osc.frequency.setValueAtTime(freq,t+start);
+          osc.frequency.exponentialRampToValueAtTime(end,t+start+duration);
+          gain.gain.setValueAtTime(0.001,t+start);
+          gain.gain.exponentialRampToValueAtTime(level,t+start+0.008);
+          gain.gain.exponentialRampToValueAtTime(0.001,t+start+duration);
+          osc.connect(gain).connect(bus);
+          osc.start(t+start);osc.stop(t+start+duration);
+          osc.onended=()=>{osc.disconnect();gain.disconnect();};
+        };
+        hit(165,65,0,0.18,0.65,"triangle");
+        hit(340,95,0.035,0.13,0.23,"triangle");
+        hit(1320,1300,0.13,0.65,0.23,"sine");
+        hit(2110,2080,0.13,0.43,0.12,"sine");
+        hit(1760,1750,0.20,0.48,0.15,"sine");
+        const cleanup=ctx.createOscillator();
+        const silent=ctx.createGain();silent.gain.value=0;
+        cleanup.connect(silent).connect(ctx.destination);
+        cleanup.start(t);cleanup.stop(t+0.9);
+        cleanup.onended=()=>{bus.disconnect();limiter.disconnect();cleanup.disconnect();silent.disconnect();};
+      }).catch(()=>{});
+    } catch { /* Original recording remains available on unsupported browsers. */ }
+    return playback;
   }
 
   async function toggleOrderSound(){

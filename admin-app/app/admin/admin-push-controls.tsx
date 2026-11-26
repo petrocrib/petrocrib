@@ -99,14 +99,14 @@ export default function AdminPushControls() {
 
   if (!key && !message) return null;
 
-  return <div>
-    {key && <button className="btn" type="button" disabled={busy}
-      onClick={() => void update(enabled ? "disable" : "enable")}>
-      {enabled ? "Disable background alerts" : "Enable notifications"}
-    </button>}
-    {enabled && <button className="btn" type="button" disabled={busy} onClick={() => void update("test")}>
-      Send test notification
-    </button>}
+  return <div style={{borderTop:"1px solid #665b24",paddingBlock:16}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
+      <div><strong>Push notifications</strong><p style={{fontSize:13,margin:"6px 0 0"}}>Receive background order alerts.</p></div>
+      {key && <button className="btn" type="button" role="switch" aria-label="Push notifications" aria-checked={enabled} disabled={busy}
+        style={{minWidth:64,background:enabled?"#facc15":"#141414",color:enabled?"#141414":"#facc15",border:"1px solid #facc15"}}
+        onClick={() => void update(enabled ? "disable" : "enable")}>{enabled?"ON":"OFF"}</button>}
+    </div>
+    {enabled && <button className="btn yellow" style={{width:"100%",marginTop:18}} type="button" disabled={busy} onClick={() => void update("test")}>Send test notification</button>}
     {message && <p className="small" role="status">{message}</p>}
   </div>;
 }

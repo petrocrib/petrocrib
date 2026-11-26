@@ -97,7 +97,7 @@ export default function AdminPushControls() {
     }
   }
 
-  if (!key && !message) return null;
+  if (!key && !message) return <p role="status" className="small">Background alerts are unavailable or still loading on this browser.</p>;
 
   return <div style={{borderTop:"1px solid #665b24",paddingBlock:16}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>

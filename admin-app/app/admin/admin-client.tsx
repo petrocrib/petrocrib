@@ -50,7 +50,7 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     const audio=orderAudioRef.current;
     if(!audio) return Promise.reject(new Error("Order sound is unavailable."));
     audio.currentTime=0;
-    audio.volume=0.78;
+    audio.volume=0.45;
     const playback=audio.play();
     try {
       const ctx=orderSoundContext.current ?? (orderSoundContext.current=new AudioContext());
@@ -58,7 +58,7 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
         if(!soundEnabledRef.current) return;
         const t=ctx.currentTime;
         const bus=ctx.createGain();
-        bus.gain.value=0.55;
+        bus.gain.value=0.72;
         const limiter=ctx.createDynamicsCompressor();
         limiter.threshold.value=-12;
         limiter.ratio.value=8;
@@ -75,11 +75,14 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
           osc.start(t+start);osc.stop(t+start+duration);
           osc.onended=()=>{osc.disconnect();gain.disconnect();};
         };
-        hit(165,65,0,0.18,0.65,"triangle");
-        hit(340,95,0.035,0.13,0.23,"triangle");
-        hit(1320,1300,0.13,0.65,0.23,"sine");
-        hit(2110,2080,0.13,0.43,0.12,"sine");
-        hit(1760,1750,0.20,0.48,0.15,"sine");
+        hit(820,180,0,0.055,0.48,"triangle");
+        hit(2350,620,0.012,0.045,0.25,"triangle");
+        hit(1480,1475,0.075,0.48,0.42,"sine");
+        hit(2380,2370,0.075,0.32,0.24,"sine");
+        hit(3920,3900,0.075,0.18,0.13,"sine");
+        hit(1975,1970,0.19,0.64,0.46,"sine");
+        hit(3170,3160,0.19,0.39,0.25,"sine");
+        hit(4780,4750,0.19,0.22,0.10,"sine");
         const cleanup=ctx.createOscillator();
         const silent=ctx.createGain();silent.gain.value=0;
         cleanup.connect(silent).connect(ctx.destination);

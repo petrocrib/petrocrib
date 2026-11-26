@@ -20,6 +20,7 @@ export default function AdminPushControls() {
       if (!publicKey) return;
 
       const registration = await navigator.serviceWorker.getRegistration("/admin/");
+      if (registration) await registration.update().catch(() => undefined);
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription && Notification.permission === "granted") {
         const response = await fetch("/api/admin/push", {
@@ -45,8 +46,9 @@ export default function AdminPushControls() {
       }
 
       let registration = await navigator.serviceWorker.getRegistration("/admin/");
-      if (!registration && action === "enable") {
-        registration = await navigator.serviceWorker.register(worker, { scope: "/admin/" });
+      if (action === "enable" || action === "test") {
+        registration = await navigator.serviceWorker.register(worker, { scope: "/admin/", updateViaCache: "none" });
+        await registration.update();
         const installing = registration.installing ?? registration.waiting;
         if (installing && installing.state !== "activated") {
           await new Promise<void>((resolve, reject) => {

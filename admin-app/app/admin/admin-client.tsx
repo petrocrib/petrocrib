@@ -44,53 +44,12 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
   const seenPaidOrders=useRef<Set<string>|null>(null);
   const soundEnabledRef=useRef(false);
   const orderAudioRef=useRef<HTMLAudioElement|null>(null);
-  const orderSoundContext=useRef<AudioContext|null>(null);
 
   function playOrderChime(){
     const audio=orderAudioRef.current;
     if(!audio) return Promise.reject(new Error("Order sound is unavailable."));
     audio.currentTime=0;
-    audio.volume=0.45;
-    const playback=audio.play();
-    try {
-      const ctx=orderSoundContext.current ?? (orderSoundContext.current=new AudioContext());
-      void ctx.resume().then(()=>{
-        if(!soundEnabledRef.current) return;
-        const t=ctx.currentTime;
-        const bus=ctx.createGain();
-        bus.gain.value=0.72;
-        const limiter=ctx.createDynamicsCompressor();
-        limiter.threshold.value=-12;
-        limiter.ratio.value=8;
-        bus.connect(limiter).connect(ctx.destination);
-        const hit=(freq:number,end:number,start:number,duration:number,level:number,type:OscillatorType)=>{
-          const osc=ctx.createOscillator(), gain=ctx.createGain();
-          osc.type=type;
-          osc.frequency.setValueAtTime(freq,t+start);
-          osc.frequency.exponentialRampToValueAtTime(end,t+start+duration);
-          gain.gain.setValueAtTime(0.001,t+start);
-          gain.gain.exponentialRampToValueAtTime(level,t+start+0.008);
-          gain.gain.exponentialRampToValueAtTime(0.001,t+start+duration);
-          osc.connect(gain).connect(bus);
-          osc.start(t+start);osc.stop(t+start+duration);
-          osc.onended=()=>{osc.disconnect();gain.disconnect();};
-        };
-        hit(820,180,0,0.055,0.48,"triangle");
-        hit(2350,620,0.012,0.045,0.25,"triangle");
-        hit(1480,1475,0.075,0.48,0.42,"sine");
-        hit(2380,2370,0.075,0.32,0.24,"sine");
-        hit(3920,3900,0.075,0.18,0.13,"sine");
-        hit(1975,1970,0.19,0.64,0.46,"sine");
-        hit(3170,3160,0.19,0.39,0.25,"sine");
-        hit(4780,4750,0.19,0.22,0.10,"sine");
-        const cleanup=ctx.createOscillator();
-        const silent=ctx.createGain();silent.gain.value=0;
-        cleanup.connect(silent).connect(ctx.destination);
-        cleanup.start(t);cleanup.stop(t+0.9);
-        cleanup.onended=()=>{bus.disconnect();limiter.disconnect();cleanup.disconnect();silent.disconnect();};
-      }).catch(()=>{});
-    } catch { /* Original recording remains available on unsupported browsers. */ }
-    return playback;
+    return audio.play();
   }
 
   async function toggleOrderSound(){
@@ -204,8 +163,7 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
     
 
     <main className="main">
-      {/* Vintage cash register by Tompalompa (CC0), excerpt from Slap Alert. */}
-      <audio ref={orderAudioRef} preload="auto" src="/sounds/cash-register.mp3" />
+      <audio ref={orderAudioRef} preload="auto" src="/sounds/dragon-studio-cash-register-kaching-376867.mp3" />
       {tab==="products" ? <ProductManager products={products} onReload={async()=>{try{await loadProducts();setError("");}catch(e){setError(e instanceof Error?e.message:"Could not load products");}}}/> : <>
         <div className="heroRow"><div><h1>{tab==="orders"?"Orders":"Overview"}</h1></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><button className="btn" onClick={loadDashboard}>Refresh now</button></div></div>
 

@@ -7,7 +7,7 @@ self.addEventListener("push", event => {
     orderId ? "KA-CHING! 💸 New order received!" : "Ka-ching check! 🔔",
     {
       body: orderId ? "Someone just made your day. Time to get packing!" : "You're connected. Now we just need customers.",
-      icon: "https://www.petrocrib.in/assets/img/logo.png",
+      icon: "https://www.petrocrib.in/assets/img/favicon.png",
       tag: orderId ? `paid-order-${orderId}` : "petrocrib-push-test",
     }
   ));

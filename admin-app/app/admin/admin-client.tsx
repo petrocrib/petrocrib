@@ -212,13 +212,22 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
         </section>
       </div>}
       {error&&<div className="error adminGlobalError">{error}</div>}
-      {(tab==="dashboard"||tab==="orders")&&<div style={{marginBlock:"1rem"}}>
-        <button className="btn" type="button" aria-pressed={orderSoundEnabled} onClick={toggleOrderSound}>
-          Ka-ching sound {orderSoundEnabled?"on":"off"}
-        </button>
-        {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}
-        <AdminPushControls />
-      </div>}
+      {(tab==="dashboard"||tab==="orders")&&<section aria-label="Order notifications" style={{marginBlock:"1.5rem",padding:"clamp(16px, 3vw, 24px)",border:"1px solid #e9c900",borderRadius:16,background:"#111",color:"#ffe500"}}>
+        <header style={{marginBottom:16}}>
+          <div style={{fontSize:12,letterSpacing:2,fontWeight:700}}>ORDER ALERTS</div>
+          <h2 style={{margin:"4px 0",fontSize:24,color:"inherit"}}>Notification settings</h2>
+        </header>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 250px), 1fr))",gap:16}}>
+          <div style={{display:"flex",flexDirection:"column",gap:10,minWidth:0}}>
+            <div><strong>Dashboard sound</strong><p style={{margin:"4px 0",fontSize:13,color:"inherit"}}>Play ka-ching for new paid orders.</p></div>
+            <button className="btn yellow" style={{alignSelf:"flex-start",maxWidth:"100%",whiteSpace:"normal"}} type="button" aria-pressed={orderSoundEnabled} onClick={toggleOrderSound}>
+              Ka-ching {orderSoundEnabled?"on":"off"}
+            </button>
+            {orderSoundNotice&&<p role="status" style={{margin:0,fontSize:13,color:"inherit"}}>{orderSoundNotice}</p>}
+          </div>
+          <AdminPushControls />
+        </div>
+      </section>}
     </main>
   </div>;
 }

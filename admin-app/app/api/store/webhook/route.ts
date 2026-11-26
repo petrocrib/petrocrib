@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { notifyAdminOfPaidOrder } from "@/lib/admin-push";
 import { createHmac, timingSafeEqual } from "crypto";
 import { db, uid } from "@/lib/db";
 import { sendOrderProcessingEmail } from "@/src/lib/order-emails";
@@ -72,6 +74,7 @@ async function markPaid(razorpayOrderId: string, paymentId: string, amount: numb
   }
 
   const order: any = changed[0];
+  after(() => notifyAdminOfPaidOrder(String(order.id)));
   await sql`
     UPDATE "Customer"
     SET "totalOrders"="totalOrders"+1,

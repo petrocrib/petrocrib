@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {exportCsv} from "./export-csv";
+import AdminPushControls from "./admin-push-controls";
 import ProductManager, { type AdminProduct } from "./product-manager";
 
 type Metrics = any;
@@ -216,6 +217,7 @@ export default function AdminClient({initialTab="dashboard"}:{initialTab?:Tab}){
           Ka-ching sound {orderSoundEnabled?"on":"off"}
         </button>
         {orderSoundNotice&&<p role="status" className="small">{orderSoundNotice}</p>}
+        <AdminPushControls />
       </div>}
     </main>
   </div>;

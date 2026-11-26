@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { notifyAdminOfPaidOrder } from "@/lib/admin-push";
 import { createHmac, timingSafeEqual } from "crypto";
 import { db, uid } from "@/lib/db";
 import { isStoreRequestAllowed, json, preflight } from "@/lib/http";
@@ -95,6 +97,7 @@ export async function POST(req: Request) {
     let reference = String(stored.reference);
     if (changed.length) {
       const order: any = changed[0];
+      after(() => notifyAdminOfPaidOrder(String(order.id)));
       reference = String(order.reference);
       await sql`
         UPDATE "Customer"

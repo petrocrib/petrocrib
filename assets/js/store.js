@@ -37,9 +37,11 @@ async function renderGrid() {
     grid.innerHTML = `<div class="empty">No designs are live right now. Check back soon.</div>`;
     return;
   }
-  grid.innerHTML = products.map((p) => {
+  const featured = products.find((p) => p.handle === "thendi");
+  const shopProducts = featured ? [featured, ...products.filter((p) => p !== featured)] : products;
+  grid.innerHTML = shopProducts.map((p) => {
     const priceLabel = money(p.minPrice);
-    const img = (p.images || [])[0] || "";
+    const img = p.handle === "thendi" ? THENDI_GALLERY.white.src : (p.images || [])[0] || "";
     return `
       <a class="card" href="product.html?handle=${encodeURIComponent(p.handle)}">
         <div class="thumb"><img loading="lazy" src="${img}" alt="${escapeHtml(p.title)}"></div>
@@ -85,14 +87,19 @@ async function renderProduct() {
   document.title = p.title + " — " + STORE_CONFIG.storeName;
   if (window.PCAnalytics) PCAnalytics.track("product_view", { productId: p.handle, productTitle: p.title });
 
-  const state = { type: p.types[0], color: colors[0] || "", size: "M", imgIndex: 0 };
+  const isThendi = p.handle === "thendi";
+  const initialColor = isThendi && colors.includes("white") ? "white" : colors[0] || "";
+  const state = { type: p.types[0], color: initialColor, size: "M", imgIndex: 0 };
   if (!sizes.includes(state.size)) state.size = sizes[0] || "";
 
-  const isThendi = p.handle === "thendi";
   function galleryViews() {
     const views = images.map((src, index) => ({ src, alt: `view ${index + 1}` }));
     if (isThendi && (state.color === "black" || state.color === "white")) {
-      views.push(THENDI_GALLERY[state.color], THENDI_GALLERY.duo);
+      const lead = { ...THENDI_GALLERY[state.color], mockup: true };
+      const duo = { ...THENDI_GALLERY.duo, mockup: true };
+      if (state.color === "white") views.unshift(lead);
+      else views.push(lead);
+      views.push(duo);
     }
     return views;
   }
@@ -103,7 +110,7 @@ async function renderProduct() {
 
   root.innerHTML = `
     <div class="gallery">
-      <div class="main"><img id="mainImg" src="${images[0] || ""}" alt="${escapeHtml(p.title)}"></div>
+      <div class="main"><img id="mainImg" src="${escapeHtml(views[0]?.src || "")}" alt="${escapeHtml(views[0]?.mockup ? views[0].alt : p.title)}"${views[0]?.mockup ? ' class="mockup"' : ""}></div>
       <div class="thumbs" id="thumbs">${thumbnailMarkup()}</div>
     </div>
     <div class="pinfo">
@@ -151,7 +158,7 @@ async function renderProduct() {
   function showView(index) {
     const view = views[index];
     if (!view) return;
-    const isMockup = index >= images.length;
+    const isMockup = Boolean(view.mockup);
     mainImg.src = view.src;
     mainImg.alt = isMockup ? view.alt : p.title;
     mainImg.classList.toggle("mockup", isMockup);

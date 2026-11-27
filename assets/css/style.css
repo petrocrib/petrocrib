@@ -257,6 +257,7 @@ img { max-width: 100%; display: block; }
   margin-bottom: 14px;
 }
 .gallery .main img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+.gallery .main img.mockup { aspect-ratio: 1122 / 1402; object-fit: contain; }
 .thumbs { display: flex; gap: 10px; flex-wrap: wrap; }
 .thumbs img {
   width: 72px; height: 72px; object-fit: cover;

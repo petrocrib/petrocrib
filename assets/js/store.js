@@ -63,6 +63,12 @@ function guideTable(g) {
   return `<div class="size-guide"><div class="sg-label">${g.label}</div><table><thead><tr>${g.cols.map((c)=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${g.rows.map((r)=>`<tr>${r.map((v)=>`<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
+const THENDI_GALLERY = {
+  black: { src: "assets/img/thendi/black.webp", alt: "Black Thendi tee, seated pose" },
+  white: { src: "assets/img/thendi/white.webp", alt: "White Thendi tee, wall pose" },
+  duo: { src: "assets/img/thendi/group.webp", alt: "Black and white Thendi tees, walking together" },
+};
+
 async function renderProduct() {
   const root = document.getElementById("product");
   if (!root) return;
@@ -82,10 +88,23 @@ async function renderProduct() {
   const state = { type: p.types[0], color: colors[0] || "", size: "M", imgIndex: 0 };
   if (!sizes.includes(state.size)) state.size = sizes[0] || "";
 
+  const isThendi = p.handle === "thendi";
+  function galleryViews() {
+    const views = images.map((src, index) => ({ src, alt: `view ${index + 1}` }));
+    if (isThendi && (state.color === "black" || state.color === "white")) {
+      views.push(THENDI_GALLERY[state.color], THENDI_GALLERY.duo);
+    }
+    return views;
+  }
+  let views = galleryViews();
+  function thumbnailMarkup() {
+    return views.map(({ src, alt }, index) => `<img src="${escapeHtml(src)}" data-i="${index}" class="${index === 0 ? "active" : ""}" alt="${escapeHtml(alt)}">`).join("");
+  }
+
   root.innerHTML = `
     <div class="gallery">
       <div class="main"><img id="mainImg" src="${images[0] || ""}" alt="${escapeHtml(p.title)}"></div>
-      <div class="thumbs" id="thumbs">${images.map((s,i)=>`<img src="${s}" data-i="${i}" class="${i===0?"active":""}" alt="view ${i+1}">`).join("")}</div>
+      <div class="thumbs" id="thumbs">${thumbnailMarkup()}</div>
     </div>
     <div class="pinfo">
       <h1>${escapeHtml(p.title)}</h1><div class="price" id="price"></div>
@@ -115,11 +134,35 @@ async function renderProduct() {
   }
   function setActive(id,val){const box=document.getElementById(id);if(!box)return;box.querySelectorAll(".pill").forEach((b)=>b.classList.toggle("on",b.dataset.v===val));}
   bindPills("typePills",(v)=>{state.type=v;paint();});
-  bindPills("colorPills",(v)=>{state.color=v;paint();});
+  bindPills("colorPills", (color) => {
+    const changed = state.color !== color;
+    state.color = color;
+    if (isThendi && changed) {
+      views = galleryViews();
+      thumbs.innerHTML = thumbnailMarkup();
+      showView(0);
+    }
+    paint();
+  });
   bindPills("sizePills",(v)=>{state.size=v;paint();});
 
   const thumbs = document.getElementById("thumbs");
-  if (thumbs) thumbs.addEventListener("click",(e)=>{const t=e.target.closest("img[data-i]");if(!t)return;document.getElementById("mainImg").src=images[+t.dataset.i];document.querySelectorAll("#thumbs img").forEach((im)=>im.classList.remove("active"));t.classList.add("active");});
+  const mainImg = document.getElementById("mainImg");
+  function showView(index) {
+    const view = views[index];
+    if (!view) return;
+    const isMockup = index >= images.length;
+    mainImg.src = view.src;
+    mainImg.alt = isMockup ? view.alt : p.title;
+    mainImg.classList.toggle("mockup", isMockup);
+    thumbs.querySelectorAll("img").forEach((thumb) => {
+      thumb.classList.toggle("active", Number(thumb.dataset.i) === index);
+    });
+  }
+  thumbs.addEventListener("click", (event) => {
+    const thumb = event.target.closest("img[data-i]");
+    if (thumb) showView(Number(thumb.dataset.i));
+  });
   const addBtn = document.getElementById("addBtn");
   const cartOn = !!(STORE_CONFIG.WORKER_URL && window.Cart);
   if (!cartOn && addBtn) addBtn.style.display = "none";
